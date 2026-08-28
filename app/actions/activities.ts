@@ -1,0 +1,139 @@
+"use server";
+
+import { ActivityType, ProspectPriority, TaskStatus } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { requirePermission } from "@/lib/auth";
+import { auditAs } from "@/lib/audit";
+import { createActivity } from "@/lib/activities";
+import { emptyToNull, readOptionalId } from "@/lib/crm";
+import { PERMISSIONS } from "@/lib/permissions";
+import { createTask, advanceTask } from "@/lib/tasks";
+
+export type ActivityFormState = {
+  error?: string;
+  success?: string;
+};
+
+const ACTIVITY_TYPES = new Set<string>(Object.values(ActivityType));
+
+function readActivityType(value: FormDataEntryValue | null): ActivityType {
+  const raw = String(value ?? "NOTE");
+  return ACTIVITY_TYPES.has(raw) ? (raw as ActivityType) : ActivityType.NOTE;
+}
+
+function readPriority(value: FormDataEntryValue | null): ProspectPriority {
+  const raw = String(value ?? "NORMAL");
+  if (raw === "LOW" || raw === "HIGH" || raw === "URGENT") return raw;
+  return ProspectPriority.NORMAL;
+}
+
+function readDateTime(value: FormDataEntryValue | null, fallback?: Date) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return fallback;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Date invalide.");
+  }
+  return date;
+}
+
+function revalidateWork(paths: string[]) {
+  for (const path of paths) revalidatePath(path);
+  revalidatePath("/");
+  revalidatePath("/taches");
+  revalidatePath("/relances");
+  revalidatePath("/prospects");
+  revalidatePath("/pipeline");
+  revalidatePath("/notifications");
+}
+
+export async function createActivityAction(
+  _prev: ActivityFormState,
+  formData: FormData,
+): Promise<ActivityFormState> {
+  const session = await requirePermission(PERMISSIONS.activitiesManage);
+
+  try {
+    const durationRaw = String(formData.get("durationMin") ?? "").trim();
+    const durationMin = durationRaw ? Number(durationRaw) : undefined;
+    if (durationMin !== undefined && (!Number.isFinite(durationMin) || durationMin < 0)) {
+      throw new Error("Durée invalide.");
+    }
+    const activity = await createActivity(session, {
+      type: readActivityType(formData.get("type")),
+      comment: emptyToNull(formData.get("comment")) ?? undefined,
+      outcome: emptyToNull(formData.get("outcome")) ?? undefined,
+      durationMin,
+      occurredAt: readDateTime(formData.get("occurredAt")),
+      prospectId: readOptionalId(formData.get("prospectId")),
+      companyId: readOptionalId(formData.get("companyId")),
+      opportunityId: readOptionalId(formData.get("opportunityId")),
+      nextContactAt: readDateTime(formData.get("nextContactAt")),
+    });
+    await auditAs(session, {
+      action: "activity.create",
+      entity: "Activity",
+      entityId: activity.id,
+      summary: `Activité ${activity.type}`,
+    });
+    revalidateWork([
+      activity.prospectId ? `/prospects/${activity.prospectId}` : "",
+      activity.opportunityId ? `/pipeline/${activity.opportunityId}` : "",
+    ].filter(Boolean));
+    return { success: "Activité enregistrée." };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Impossible d’enregistrer l’activité.",
+    };
+  }
+}
+
+export async function createTaskAction(
+  _prev: ActivityFormState,
+  formData: FormData,
+): Promise<ActivityFormState> {
+  const session = await requirePermission(PERMISSIONS.activitiesManage);
+
+  try {
+    const task = await createTask(session, {
+      title: String(formData.get("title") ?? ""),
+      description: emptyToNull(formData.get("description")) ?? undefined,
+      priority: readPriority(formData.get("priority")),
+      dueAt: readDateTime(formData.get("dueAt")),
+      ownerId: readOptionalId(formData.get("ownerId")),
+      prospectId: readOptionalId(formData.get("prospectId")),
+      companyId: readOptionalId(formData.get("companyId")),
+      opportunityId: readOptionalId(formData.get("opportunityId")),
+    });
+    await auditAs(session, {
+      action: "task.create",
+      entity: "Task",
+      entityId: task.id,
+      summary: `Tâche ${task.title}`,
+    });
+    revalidateWork([
+      task.prospectId ? `/prospects/${task.prospectId}` : "",
+      task.opportunityId ? `/pipeline/${task.opportunityId}` : "",
+    ].filter(Boolean));
+    return { success: "Tâche créée." };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Impossible de créer la tâche.",
+    };
+  }
+}
+
+export async function advanceTaskAction(taskId: string) {
+  const session = await requirePermission(PERMISSIONS.activitiesManage);
+  const task = await advanceTask(session, taskId);
+  await auditAs(session, {
+    action: "task.advance",
+    entity: "Task",
+    entityId: task.id,
+    summary: `${task.title} → ${task.status}`,
+  });
+  revalidateWork([
+    task.prospectId ? `/prospects/${task.prospectId}` : "",
+    task.opportunityId ? `/pipeline/${task.opportunityId}` : "",
+  ].filter(Boolean));
+}

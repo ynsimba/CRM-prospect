@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: baros-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: baros
+      POSTGRES_PASSWORD: baros
+      POSTGRES_DB: baros
+    ports:
+      - "5433:5432"
+    volumes:
+      - baros_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baros -d baros"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  baros_pg_data:

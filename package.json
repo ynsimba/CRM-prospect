@@ -1,24 +1,42 @@
 {
-  "name": "erp-dashboard",
+  "name": "prospect-crm",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force",
+    "test": "tsx --test lib/money.test.ts lib/permissions.test.ts lib/crm.test.ts lib/pipeline-logic.test.ts lib/activity-logic.test.ts lib/goal-logic.test.ts lib/notify-logic.test.ts lib/csv.test.ts lib/import-logic.test.ts lib/report-logic.test.ts lib/nav.test.ts lib/dashboard-logic.test.ts lib/prospect-list-logic.test.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "jose": "^6.2.10",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
