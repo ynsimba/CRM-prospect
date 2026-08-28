@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { writeAudit } from "@/lib/audit";
 import { createSession, deleteSession } from "@/lib/session";
+import { loginFailureMessage } from "@/lib/db-error";
 
 export type LoginState = {
   error?: string;
@@ -62,9 +63,7 @@ export async function loginAction(
     nextPath = user.role === "SUPER_ADMIN" ? "/admin" : "/";
   } catch (error) {
     console.error(error);
-    return {
-      error: "Base de données indisponible. Lance npm run db:up puis npm run db:reset.",
-    };
+    return { error: loginFailureMessage(error) };
   }
 
   redirect(nextPath);
