@@ -1,3 +1,5 @@
+import { getDatabaseUrl } from "@/lib/env";
+
 export function loginFailureMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "";
   const code =
@@ -8,7 +10,7 @@ export function loginFailureMessage(error: unknown) {
   if (message.includes("SESSION_SECRET")) {
     return "SESSION_SECRET manquant sur Vercel (au moins 16 caractères).";
   }
-  if (!process.env.DATABASE_URL) {
+  if (!getDatabaseUrl()) {
     return "DATABASE_URL manquant sur Vercel. Branche une Postgres (Neon, Supabase ou Vercel Postgres).";
   }
   if (code === "P1001" || code === "P1017" || /can't reach database|econnrefused|etimedout/i.test(message)) {

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { DEMO_STAFF_EMAILS } from "@/lib/staff-email";
 
 const initialState: LoginState = {};
 
@@ -17,7 +18,7 @@ export default function LoginForm() {
           type="email"
           autoComplete="username"
           required
-          defaultValue="admin@demo.cd"
+          defaultValue={DEMO_STAFF_EMAILS.admin.email}
         />
       </label>
       <label className="login-field">

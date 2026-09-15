@@ -14,7 +14,7 @@ export default async function ArchivesPage() {
       <div className="page-head">
         <div>
           <h1 className="page-title">Archives</h1>
-          <p className="card-sub">Prospects convertis ou perdus.</p>
+          <p className="card-sub">Rejetés depuis 15 jours et finalisés depuis 30 jours.</p>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { auditAs } from "@/lib/audit";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ASSIGNABLE_ROLES } from "@/lib/roles";
 import { createUser, toggleUserActive } from "@/lib/users";
+import { parseWelcomeCivility } from "@/lib/crm";
 
 export type UserFormState = {
   error?: string;
@@ -31,6 +32,7 @@ export async function createUserAction(
       password: String(formData.get("password") ?? ""),
       role: readRole(formData.get("role")),
       phone: String(formData.get("phone") ?? "").trim() || undefined,
+      civility: parseWelcomeCivility(formData.get("civility")),
     });
     await auditAs(session, {
       action: "user.create",
@@ -39,6 +41,7 @@ export async function createUserAction(
       summary: `Création du compte ${user.email} (${user.role})`,
     });
     revalidatePath("/parametres");
+    revalidatePath("/utilisateurs");
     revalidatePath("/equipe");
     return { success: `${user.name} a été ajouté.` };
   } catch (error) {
@@ -58,5 +61,6 @@ export async function toggleUserAction(userId: string) {
     summary: `${user.name} ${user.isActive ? "activé" : "désactivé"}`,
   });
   revalidatePath("/parametres");
+  revalidatePath("/utilisateurs");
   revalidatePath("/equipe");
 }

@@ -2,8 +2,8 @@ const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Se
 
 export type AnalyticsRange = "Tout" | "Cette année" | "Ce mois" | "Cette semaine";
 
-export const CONTACTED_SLUGS = new Set(["contacte", "reponse", "qualifie", "converti", "en-attente"]);
-export const QUALIFIED_SLUGS = new Set(["qualifie", "converti"]);
+export const CONTACTED_SLUGS = new Set(["lead", "pipeline", "finalise"]);
+export const QUALIFIED_SLUGS = new Set(["pipeline", "finalise"]);
 
 export function conversionPercent(part: number, total: number) {
   if (total <= 0) return 0;
@@ -145,4 +145,43 @@ export function last12MonthWinRates(
     label: bucket.label,
     value: conversionPercent(bucket.won, bucket.closed),
   }));
+}
+
+export function monthWinRate(closed: { date: Date; won: boolean }[], now = new Date()) {
+  const { start, end } = monthBounds(now.getFullYear(), now.getMonth());
+  const inMonth = closed.filter((item) => item.date >= start && item.date <= end);
+  return conversionPercent(
+    inMonth.filter((item) => item.won).length,
+    inMonth.length,
+  );
+}
+
+export function buildAnalyticsSeries(dates: Date[], now = new Date()) {
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const { start: monthStart, end: monthEnd } = monthBounds(now.getFullYear(), now.getMonth());
+  const weekStart = startOfDay(now);
+  weekStart.setDate(weekStart.getDate() - 6);
+
+  return {
+    Tout: {
+      total: dates.length,
+      spark: last12MonthBuckets(dates, now).map((item) => item.value),
+      caption: "Volume d’activités · 12 mois",
+    },
+    "Cette année": {
+      total: countInRange(dates, yearStart, now),
+      spark: last12MonthBuckets(dates, now).map((item) => item.value),
+      caption: "Volume d’activités · année en cours",
+    },
+    "Ce mois": {
+      total: countInRange(dates, monthStart, monthEnd),
+      spark: lastNWeekCounts(dates, 4, now),
+      caption: "Volume d’activités · mois en cours",
+    },
+    "Cette semaine": {
+      total: countInRange(dates, weekStart, now),
+      spark: lastNDayCounts(dates, 7, now),
+      caption: "Volume d’activités · 7 derniers jours",
+    },
+  } as const;
 }

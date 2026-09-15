@@ -3,7 +3,7 @@ import Shell from "@/components/Shell";
 import ContactForm from "@/components/ContactForm";
 import { requirePermission } from "@/lib/auth";
 import { listContacts } from "@/lib/contacts";
-import { fullName, whatsappHref } from "@/lib/crm";
+import { personCategoryLabel, whatsappHref } from "@/lib/crm";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 
@@ -57,10 +57,15 @@ export default async function ContactsPage({
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Contact</th>
+                      <th>ID</th>
+                      <th>Titre</th>
+                      <th>Prénom</th>
+                      <th>Nom</th>
+                      <th>Fonction</th>
+                      <th>Catégorie</th>
                       <th>Entreprise</th>
-                      <th>Téléphone</th>
-                      <th>WhatsApp</th>
+                      <th>Tél</th>
+                      <th>Mail</th>
                       <th>Commercial</th>
                     </tr>
                   </thead>
@@ -69,12 +74,14 @@ export default async function ContactsPage({
                       const wa = contact.whatsapp ? whatsappHref(contact.whatsapp) : null;
                       return (
                         <tr key={contact.id}>
+                          <td>{contact.displayCode ?? "—"}</td>
+                          <td>{contact.civility ?? "—"}</td>
                           <td>
-                            <Link href={`/contacts/${contact.id}`}>
-                              <strong>{fullName(contact.firstName, contact.lastName)}</strong>
-                            </Link>
-                            <div className="muted-line">{contact.jobTitle ?? contact.email ?? "—"}</div>
+                            <Link href={`/contacts/${contact.id}`}>{contact.firstName}</Link>
                           </td>
+                          <td>{contact.lastName}</td>
+                          <td>{contact.jobTitle ?? "—"}</td>
+                          <td>{personCategoryLabel(contact.category)}</td>
                           <td>
                             {contact.company ? (
                               <Link href={`/entreprises/${contact.company.id}`}>{contact.company.name}</Link>
@@ -82,16 +89,18 @@ export default async function ContactsPage({
                               "—"
                             )}
                           </td>
-                          <td>{contact.phone ?? "—"}</td>
                           <td>
+                            {contact.phone ?? "—"}
                             {wa ? (
-                              <a href={wa} target="_blank" rel="noreferrer">
-                                WhatsApp
-                              </a>
-                            ) : (
-                              "—"
-                            )}
+                              <>
+                                {" · "}
+                                <a href={wa} target="_blank" rel="noreferrer">
+                                  WhatsApp
+                                </a>
+                              </>
+                            ) : null}
                           </td>
+                          <td>{contact.email ?? "—"}</td>
                           <td>{contact.owner?.name ?? "—"}</td>
                         </tr>
                       );

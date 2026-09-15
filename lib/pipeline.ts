@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { orgScope } from "@/lib/auth";
+import { orgScope, ownedScope } from "@/lib/auth";
 import { opportunityStatusFromStage, weightedAmount } from "@/lib/pipeline-logic";
 import { notify } from "@/lib/notifications";
 import { refreshProspectScore } from "@/lib/scoring";
@@ -85,7 +85,7 @@ export async function getPipelineOptions(session: SessionPayload) {
   const [pipeline, companies, owners, prospects] = await Promise.all([
     getDefaultPipeline(session),
     prisma.company.findMany({
-      where: scope,
+      where: { ...scope, ...ownedScope(session) },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -95,8 +95,8 @@ export async function getPipelineOptions(session: SessionPayload) {
       orderBy: { name: "asc" },
     }),
     prisma.prospect.findMany({
-      where: scope,
-      select: { id: true, firstName: true, lastName: true, companyId: true },
+      where: { ...scope, ...ownedScope(session) },
+      select: { id: true, firstName: true, lastName: true, company: { select: { name: true } } },
       orderBy: { updatedAt: "desc" },
       take: 80,
     }),

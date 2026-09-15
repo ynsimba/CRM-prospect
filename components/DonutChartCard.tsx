@@ -16,9 +16,9 @@ type DonutChartCardProps = {
 export default function DonutChartCard({ open, won, lost }: DonutChartCardProps) {
   const total = open + won + lost;
   const raw = [
-    { value: open, color: "#fcb040", label: "Ouvertes" },
-    { value: won, color: "#12a197", label: "Gagnées" },
-    { value: lost, color: "#2f3990", label: "Perdues" },
+    { value: open, color: "#fcb040", label: "Pipeline" },
+    { value: won, color: "#12a197", label: "Finalisé" },
+    { value: lost, color: "#2f3990", label: "Rejeté" },
   ];
   const denom = total > 0 ? total : 1;
   const segments = raw.map((item) => ({
@@ -35,7 +35,7 @@ export default function DonutChartCard({ open, won, lost }: DonutChartCardProps)
   return (
     <article className="dash-card chart-card">
       <div className="donut-head">
-        <h3>Pipeline</h3>
+        <h3>Statuts</h3>
         <Link href="/pipeline" className="icon-btn" aria-label="Ouvrir le pipeline">
           <i className="bi bi-gear" />
         </Link>

@@ -1,14 +1,16 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { orgScope } from "@/lib/auth";
+import { orgScope, ownedScope } from "@/lib/auth";
 import type { SessionPayload } from "@/lib/session";
+import { nextDisplayCode } from "@/lib/status-history";
 
 export async function listCompanies(session: SessionPayload, query?: string) {
   const q = query?.trim();
   return prisma.company.findMany({
     where: {
       ...orgScope(session),
+      ...ownedScope(session),
       ...(q
         ? {
             OR: [
@@ -26,6 +28,20 @@ export async function listCompanies(session: SessionPayload, query?: string) {
     },
     orderBy: { name: "asc" },
     take: 80,
+  });
+}
+
+export async function findCompanyByName(session: SessionPayload, name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  return prisma.company.findFirst({
+    where: {
+      ...orgScope(session),
+      name: { equals: trimmed, mode: "insensitive" },
+    },
+    include: {
+      prospects: { select: { id: true }, take: 1 },
+    },
   });
 }
 
@@ -63,9 +79,15 @@ export async function createCompany(
     throw new Error("Le nom de l’entreprise est requis.");
   }
 
+  const duplicate = await findCompanyByName(session, name);
+  if (duplicate) {
+    throw new Error(`Cette entreprise existe déjà : ${duplicate.name}. Recherchez-la dans le formulaire.`);
+  }
+
   return prisma.company.create({
     data: {
       organizationId: session.organizationId,
+      displayCode: await nextDisplayCode(session.organizationId, "ENT"),
       ownerId: input.ownerId ?? session.userId,
       name,
       industry: input.industry,

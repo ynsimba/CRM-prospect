@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildAnalyticsSeries,
   buildFunnel,
   conversionPercent,
   funnelFromProspects,
   last12MonthBuckets,
   lastNDayCounts,
   lastNWeekCounts,
+  monthWinRate,
   sourceReport,
   type ReportProspect,
 } from "./report-logic";
@@ -31,9 +33,9 @@ test("entonnoir : taux global et d’étape", () => {
 
 test("rapport sources trié par volume", () => {
   const rows: ReportProspect[] = [
-    { statusSlug: "nouveau", isConverted: false, lastContactAt: null, sourceName: "WhatsApp", opportunityCount: 0, wonOpportunity: false },
-    { statusSlug: "converti", isConverted: true, lastContactAt: new Date(), sourceName: "WhatsApp", opportunityCount: 1, wonOpportunity: true },
-    { statusSlug: "qualifie", isConverted: false, lastContactAt: new Date(), sourceName: "Facebook", opportunityCount: 0, wonOpportunity: false },
+    { statusSlug: "opportunite", isConverted: false, lastContactAt: null, sourceName: "WhatsApp", opportunityCount: 0, wonOpportunity: false },
+    { statusSlug: "finalise", isConverted: true, lastContactAt: new Date(), sourceName: "WhatsApp", opportunityCount: 1, wonOpportunity: true },
+    { statusSlug: "pipeline", isConverted: false, lastContactAt: new Date(), sourceName: "Facebook", opportunityCount: 0, wonOpportunity: false },
   ];
   const sources = sourceReport(rows);
   assert.equal(sources[0].name, "WhatsApp");
@@ -68,4 +70,29 @@ test("buckets 12 mois et 7 jours", () => {
   assert.equal(weeks[3], 1);
   assert.equal(weeks[2], 1);
   assert.equal(weeks[0], 1);
+});
+
+test("taux de réussite du mois et séries analytics", () => {
+  const now = new Date(2026, 7, 28, 12);
+  assert.equal(
+    monthWinRate(
+      [
+        { date: new Date(2026, 7, 2), won: true },
+        { date: new Date(2026, 7, 10), won: false },
+        { date: new Date(2026, 6, 15), won: true },
+      ],
+      now,
+    ),
+    50,
+  );
+
+  const series = buildAnalyticsSeries(
+    [new Date(2026, 7, 28), new Date(2026, 7, 27), new Date(2026, 0, 2)],
+    now,
+  );
+  assert.equal(series.Tout.total, 3);
+  assert.equal(series["Cette année"].total, 3);
+  assert.equal(series["Ce mois"].total, 2);
+  assert.equal(series["Cette semaine"].spark.length, 7);
+  assert.equal(series["Cette semaine"].spark[6], 1);
 });

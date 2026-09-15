@@ -17,6 +17,24 @@ export const PRIORITY_LABELS = {
   URGENT: "Urgente",
 } as const;
 
+export const CIVILITIES = [
+  { id: "Mr", name: "Mr" },
+  { id: "Mme", name: "Mme" },
+  { id: "Mlle", name: "Mlle" },
+] as const;
+
+export type Civility = (typeof CIVILITIES)[number]["id"];
+
+export function parseCivility(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "").trim();
+  return CIVILITIES.some((item) => item.id === raw) ? (raw as Civility) : undefined;
+}
+
+export function parseWelcomeCivility(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "").trim();
+  return raw === "Mr" || raw === "Mme" ? raw : undefined;
+}
+
 export const PERSON_CATEGORIES = [
   { id: "contact", name: "Personne de contact" },
   { id: "porteur", name: "Porteur de projet" },
@@ -33,19 +51,14 @@ export function personCategoryLabel(value?: string | null) {
   return PERSON_CATEGORIES.find((item) => item.id === value)?.name ?? value ?? "—";
 }
 
-export const FOLLOW_UP_STATUS_SLUGS = [
-  "a-contacter",
-  "contacte",
-  "reponse",
-  "qualifie",
-  "en-attente",
-] as const;
+export const FOLLOW_UP_STATUS_SLUGS = ["opportunite", "lead", "pipeline"] as const;
 
 export type ProspectFilters = {
   q?: string;
   statusId?: string;
   sourceId?: string;
   ownerId?: string;
+  mine?: boolean;
   tagId?: string;
   priority?: ProspectPriority;
   city?: string;
@@ -133,11 +146,11 @@ export function computeProspectScore(input: {
   if (tags.includes("Urgent")) add("Tag urgent", 5);
 
   const slug = input.statusSlug ?? "";
-  if (slug === "qualifie") add("Qualifié", 15);
-  else if (slug === "reponse") add("Réponse reçue", 10);
-  else if (slug === "contacte") add("Contacté", 5);
-  else if (slug === "converti") add("Converti", 20);
-  else if (slug === "perdu" || slug === "non-qualifie") add("Non qualifié / perdu", -20);
+  if (slug === "pipeline") add("Pipeline", 15);
+  else if (slug === "lead") add("Lead", 10);
+  else if (slug === "opportunite") add("Opportunité", 5);
+  else if (slug === "finalise") add("Finalisé", 20);
+  else if (slug === "rejete") add("Rejeté", -20);
 
   const types = input.activityTypes ?? [];
   const exchanges = types.filter((type) => ["CALL", "EMAIL", "WHATSAPP", "SMS"].includes(type)).length;
@@ -194,8 +207,11 @@ export function slugify(value: string) {
 }
 
 export function statusPillClass(slug: string, isConverted?: boolean, isLost?: boolean) {
-  if (isConverted || slug === "converti" || slug === "qualifie") return "on";
-  if (isLost || slug === "perdu" || slug === "non-qualifie") return "off";
+  if (slug === "opportunite") return "opportunite";
+  if (slug === "lead") return "lead";
+  if (slug === "pipeline") return "pipeline";
+  if (isConverted || slug === "finalise") return "on";
+  if (isLost || slug === "rejete") return "off";
   return "warn";
 }
 

@@ -164,7 +164,7 @@ export default async function TeamPage({
               </div>
             )}
             <p className="muted-line" style={{ marginTop: 12 }}>
-              Les comptes se créent dans <Link href="/parametres">Paramètres</Link>.
+              Les comptes se créent dans <Link href="/utilisateurs">Utilisateurs</Link>.
             </p>
           </article>
         </div>

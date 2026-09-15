@@ -1,24 +1,19 @@
 import Link from "next/link";
 import Shell from "@/components/Shell";
 import OrganizationForm from "@/components/OrganizationForm";
-import UserForm from "@/components/UserForm";
 import { SourceAddForm, StatusAddForm, TagAddForm } from "@/components/CatalogForms";
-import { toggleUserAction } from "@/app/actions/users";
 import { requireSession } from "@/lib/auth";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
-import { ROLE_LABELS } from "@/lib/roles";
 import { getOrganizationSettings } from "@/lib/settings";
-import { listUsers } from "@/lib/users";
 
 export default async function SettingsPage() {
   const session = await requireSession();
   const canSettings =
     session.role !== "SUPER_ADMIN" && roleHasPermission(session.role, PERMISSIONS.settingsManage);
   const canUsers = roleHasPermission(session.role, PERMISSIONS.usersManage);
-  const [organization, users, options] = await Promise.all([
+  const [organization, options] = await Promise.all([
     getOrganizationSettings(session),
-    canUsers ? listUsers(session) : Promise.resolve([]),
     canSettings
       ? getCrmOptions(session)
       : Promise.resolve({ statuses: [], sources: [], tags: [], companies: [], owners: [] }),
@@ -60,53 +55,14 @@ export default async function SettingsPage() {
 
         <div className="col-12 col-xl-7">
           <article className="dash-card">
-            <h3>Équipe</h3>
+            <h3>Utilisateurs</h3>
             {canUsers ? (
-              <>
-                <div className="table-wrap">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Nom</th>
-                        <th>Rôle</th>
-                        <th>Statut</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((user) => (
-                        <tr key={user.id}>
-                          <td>
-                            <strong>{user.name}</strong>
-                            <div className="muted-line">{user.email}</div>
-                          </td>
-                          <td>{ROLE_LABELS[user.role]}</td>
-                          <td>
-                            <span className={`status-pill ${user.isActive ? "on" : "off"}`}>
-                              {user.isActive ? "Actif" : "Inactif"}
-                            </span>
-                          </td>
-                          <td>
-                            {user.id !== session.userId && user.role !== "SUPER_ADMIN" ? (
-                              <form action={toggleUserAction.bind(null, user.id)}>
-                                <button type="submit" className="table-action">
-                                  {user.isActive ? "Désactiver" : "Activer"}
-                                </button>
-                              </form>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div style={{ marginTop: 16 }}>
-                  <h3>Nouvel utilisateur</h3>
-                  <UserForm />
-                </div>
-              </>
+              <p className="empty-copy">
+                Les comptes se gèrent dans le module{" "}
+                <Link href="/utilisateurs">Utilisateurs</Link> (Admin, Direction, Délégué commercial).
+              </p>
             ) : (
-              <p className="empty-copy">L’admin et le manager gèrent les comptes.</p>
+              <p className="empty-copy">Seul l’Admin gère les comptes (Admin, Direction, Délégué commercial).</p>
             )}
           </article>
         </div>
@@ -117,7 +73,7 @@ export default async function SettingsPage() {
           <div className="col-12 col-xl-4">
             <article className="dash-card">
               <h3>Statuts</h3>
-              <p className="muted-line">Nouveau, contacté, converti…</p>
+              <p className="muted-line">Opportunité, Lead, Pipeline, Rejeté, Finalisé</p>
               <ul className="catalog-list">
                 {options.statuses.map((status) => (
                   <li key={status.id}>{status.name}</li>

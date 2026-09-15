@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { computeLeadScore, computeProspectScore, parsePersonCategory, parseProspectFilters, scoreBand, slugify, whatsappHref } from "./crm";
+import { computeLeadScore, computeProspectScore, parseCivility, parsePersonCategory, parseProspectFilters, parseWelcomeCivility, scoreBand, slugify, whatsappHref } from "./crm";
 
 test("score de base e-mail + téléphone + entreprise", () => {
   assert.equal(computeLeadScore({}), 0);
@@ -43,6 +43,10 @@ test("catégories personne de contact / porteur", () => {
   assert.equal(parsePersonCategory("contact"), "contact");
   assert.equal(parsePersonCategory("porteur"), "porteur");
   assert.equal(parsePersonCategory("autre"), undefined);
+  assert.equal(parseCivility("Mme"), "Mme");
+  assert.equal(parseCivility("Dr"), undefined);
+  assert.equal(parseWelcomeCivility("Mr"), "Mr");
+  assert.equal(parseWelcomeCivility("Mlle"), undefined);
 });
 
 test("score avancé : WhatsApp, VIP, statut, relance en retard", () => {
@@ -55,7 +59,7 @@ test("score avancé : WhatsApp, VIP, statut, relance en retard", () => {
     jobTitle: "DG",
     priority: "URGENT",
     tags: ["VIP", "Hot Lead"],
-    statusSlug: "qualifie",
+    statusSlug: "pipeline",
     activityTypes: ["CALL", "MEETING"],
     lastContactAt: new Date("2026-08-25T12:00:00Z"),
     now,
@@ -65,11 +69,11 @@ test("score avancé : WhatsApp, VIP, statut, relance en retard", () => {
 
   const lost = computeProspectScore({
     email: "a@b.cd",
-    statusSlug: "perdu",
+    statusSlug: "rejete",
     nextContactAt: new Date("2026-08-20T12:00:00Z"),
     now,
   });
   assert.equal(lost.score, 0);
-  assert.ok(lost.parts.some((part) => part.label === "Non qualifié / perdu" && part.points === -20));
+  assert.ok(lost.parts.some((part) => part.label === "Rejeté" && part.points === -20));
   assert.ok(lost.parts.some((part) => part.label === "Relance en retard" && part.points === -10));
 });

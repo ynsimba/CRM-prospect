@@ -1,14 +1,17 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { orgScope } from "@/lib/auth";
+import { orgScope, ownedScope } from "@/lib/auth";
 import type { SessionPayload } from "@/lib/session";
+import { nextDisplayCode } from "@/lib/status-history";
 
-export async function listContacts(session: SessionPayload, query?: string) {
+export async function listContacts(session: SessionPayload, query?: string, category?: string) {
   const q = query?.trim();
   return prisma.contact.findMany({
     where: {
       ...orgScope(session),
+      ...ownedScope(session),
+      ...(category ? { category } : {}),
       ...(q
         ? {
             OR: [
@@ -47,6 +50,7 @@ export async function createContact(
   input: {
     firstName: string;
     lastName: string;
+    civility?: string;
     jobTitle?: string;
     email?: string;
     phone?: string;
@@ -62,6 +66,9 @@ export async function createContact(
   if (!firstName || !lastName) {
     throw new Error("Le prénom et le nom sont requis.");
   }
+  if (!input.companyId) {
+    throw new Error("Un contact doit être rattaché à une entreprise.");
+  }
 
   if (input.companyId) {
     const company = await prisma.company.findFirst({
@@ -76,9 +83,11 @@ export async function createContact(
   return prisma.contact.create({
     data: {
       organizationId: session.organizationId,
+      displayCode: await nextDisplayCode(session.organizationId, "CTC"),
       ownerId: session.userId,
       firstName,
       lastName,
+      civility: input.civility,
       jobTitle: input.jobTitle,
       email: input.email,
       phone: input.phone,

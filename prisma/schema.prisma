@@ -92,6 +92,8 @@ model Organization {
   goals            Goal[]
   auditLogs        AuditLog[]
   subscription     Subscription?
+  statusHistory    ProspectStatusHistory[]
+  notes            UserNote[]
 }
 
 model Team {
@@ -132,6 +134,7 @@ model User {
   email          String
   passwordHash   String
   name           String
+  civility       String?
   phone          String?
   role           Role
   isActive       Boolean   @default(true)
@@ -152,6 +155,9 @@ model User {
   notifications        Notification[]
   goals                Goal[]
   auditLogs            AuditLog[]
+  tasksCreated         Task[]                   @relation("TaskAssignedBy")
+  statusChanges        ProspectStatusHistory[]
+  notes                UserNote[]
 
   @@unique([organizationId, email])
   @@index([organizationId])
@@ -168,8 +174,9 @@ model ProspectStatus {
   isConverted    Boolean @default(false)
   isLost         Boolean @default(false)
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   prospects    Prospect[]
+  history      ProspectStatusHistory[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -214,6 +221,7 @@ model Company {
   city           String?
   address        String?
   size           String?
+  displayCode    String?
   status         String  @default("active")
   notes          String?
 
@@ -240,6 +248,7 @@ model Contact {
   ownerId        String?
   firstName      String
   lastName       String
+  civility       String?
   jobTitle       String?
   email          String?
   phone          String?
@@ -247,6 +256,7 @@ model Contact {
   linkedin       String?
   status         String  @default("active")
   category       String?
+  displayCode    String?
   notes          String?
 
   createdAt DateTime @default(now())
@@ -289,6 +299,10 @@ model Prospect {
   priority        ProspectPriority  @default(NORMAL)
   score           Int               @default(0)
   notes           String?
+  statusComment   String?
+  displayCode     String?
+  firstContactAt  DateTime?
+  lastActionAt    DateTime?
   nextContactAt   DateTime?
   lastContactAt   DateTime?
   marketingConsent Boolean          @default(false)
@@ -297,17 +311,18 @@ model Prospect {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization  Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  company       Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  contact       Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  owner         User?            @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  status        ProspectStatus   @relation(fields: [statusId], references: [id], onDelete: Restrict)
-  source        ProspectSource?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  organization  Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company       Company?                 @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact       Contact?                 @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  owner         User?                    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  status        ProspectStatus           @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  source        ProspectSource?          @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   tags          ProspectTag[]
   opportunities Opportunity[]
   activities    Activity[]
   tasks         Task[]
   campaignLinks CampaignMember[]
+  statusHistory ProspectStatusHistory[]
 
   @@index([organizationId, createdAt])
   @@index([statusId])
@@ -315,6 +330,27 @@ model Prospect {
   @@index([email])
   @@index([phone])
   @@index([nextContactAt])
+}
+
+model ProspectStatusHistory {
+  id             String   @id @default(cuid())
+  organizationId String
+  prospectId     String
+  statusId       String
+  actorId        String?
+  statusName     String
+  statusSlug     String
+  comment        String?
+  displayCode    String?
+  occurredAt     DateTime @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  prospect     Prospect      @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  status       ProspectStatus @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, occurredAt])
+  @@index([prospectId, occurredAt])
 }
 
 model ProspectTag {
@@ -428,11 +464,15 @@ model Task {
   id             String         @id @default(cuid())
   organizationId String
   ownerId        String
+  assignedById   String?
   prospectId     String?
   companyId      String?
   opportunityId  String?
   title          String
+  displayCode    String?
   description    String?
+  directorNote   String?
+  ownerNote      String?
   priority       ProspectPriority @default(NORMAL)
   status         TaskStatus     @default(TODO)
   dueAt          DateTime?
@@ -442,6 +482,7 @@ model Task {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   owner        User         @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  assignedBy   User?        @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
   prospect     Prospect?    @relation(fields: [prospectId], references: [id], onDelete: SetNull)
   company      Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
   opportunity  Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
@@ -480,6 +521,23 @@ model CampaignMember {
   prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
 
   @@id([campaignId, prospectId])
+}
+
+model UserNote {
+  id             String   @id @default(cuid())
+  organizationId String
+  ownerId        String
+  title          String
+  body           String   @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, updatedAt])
+  @@index([organizationId])
 }
 
 model Notification {

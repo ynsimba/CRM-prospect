@@ -8,6 +8,7 @@ import {
   DEFAULT_TAGS,
 } from "../lib/crm-defaults";
 import { seedDemoCrm } from "./demo-crm";
+import { DEMO_STAFF_EMAILS } from "../lib/staff-email";
 
 const prisma = new PrismaClient();
 
@@ -74,27 +75,37 @@ async function main() {
   });
 
   const users = [
-    { email: "admin@demo.cd", name: "Amina Kalala", role: Role.OWNER, password: "admin123" },
-    { email: "manager@demo.cd", name: "Paul Ilunga", role: Role.MANAGER, password: "manager123" },
-    { email: "jean@demo.cd", name: "Neisse ENGANI", role: Role.SALES, password: "jean123" },
-    { email: "marie@demo.cd", name: "Marie Kabila", role: Role.SALES, password: "marie123" },
+    { ...DEMO_STAFF_EMAILS.admin, name: "Amina Kalala", civility: "Mme", role: Role.OWNER, password: "admin123" },
+    { ...DEMO_STAFF_EMAILS.direction, name: "Françis BALUMENE", civility: "Mr", role: Role.MANAGER, password: "manager123" },
+    { ...DEMO_STAFF_EMAILS.jean, name: "Neisse ENGANI", civility: "Mme", role: Role.SALES, password: "jean123" },
+    { ...DEMO_STAFF_EMAILS.marie, name: "Naomie KANDOLO", civility: "Mme", role: Role.SALES, password: "marie123" },
   ];
 
   for (const user of users) {
     const passwordHash = await bcrypt.hash(user.password, 10);
-    await prisma.user.upsert({
+    const existing = await prisma.user.findFirst({
       where: {
-        organizationId_email: { organizationId: organization.id, email: user.email },
-      },
-      update: { passwordHash, name: user.name, role: user.role, isActive: true },
-      create: {
         organizationId: organization.id,
-        email: user.email,
-        passwordHash,
-        name: user.name,
-        role: user.role,
+        email: { in: [user.email, ...user.aliases] },
       },
     });
+    if (existing) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { email: user.email, passwordHash, name: user.name, civility: user.civility, role: user.role, isActive: true },
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          organizationId: organization.id,
+          email: user.email,
+          passwordHash,
+          name: user.name,
+          civility: user.civility,
+          role: user.role,
+        },
+      });
+    }
   }
 
   await seedDemoCrm(prisma, organization.id);

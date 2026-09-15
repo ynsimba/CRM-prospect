@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { orgScope } from "@/lib/auth";
+import { orgScope, ownedScope } from "@/lib/auth";
 import type { SessionPayload } from "@/lib/session";
 
 export async function getCrmOptions(session: SessionPayload) {
@@ -11,7 +11,7 @@ export async function getCrmOptions(session: SessionPayload) {
     prisma.prospectSource.findMany({ where: scope, orderBy: { name: "asc" } }),
     prisma.tag.findMany({ where: scope, orderBy: { name: "asc" } }),
     prisma.company.findMany({
-      where: scope,
+      where: { ...scope, ...ownedScope(session) },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

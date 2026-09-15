@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { orgScope } from "@/lib/auth";
 import { startOfDay } from "@/lib/activity-logic";
 import { encodeNotificationBody } from "@/lib/notify-logic";
+import { dormantWhere } from "@/lib/safecheck";
+import { isDirectionRole } from "@/lib/roles";
+import { fullName } from "@/lib/crm";
 import type { SessionPayload } from "@/lib/session";
 
 export async function notify(input: {
@@ -119,5 +122,27 @@ export async function ensureDueNotifications(session: SessionPayload) {
       kind: "task",
       href: "/taches",
     });
+  }
+
+  if (today.getDay() === 1 && isDirectionRole(session.role)) {
+    const dormant = await prisma.prospect.findMany({
+      where: { ...orgScope(session), ...dormantWhere(today) },
+      select: { firstName: true, lastName: true, company: { select: { name: true } } },
+      take: 30,
+    });
+    if (dormant.length > 0) {
+      const week = `${today.getFullYear()}-W${String(Math.ceil(today.getDate() / 7)).padStart(2, "0")}`;
+      const names = dormant
+        .map((item) => item.company?.name ?? fullName(item.firstName, item.lastName))
+        .join(", ");
+      await notify({
+        organizationId: session.organizationId,
+        userId: session.userId,
+        title: `Prospects dormants — ${week}`,
+        body: `${dormant.length} entreprise(s) sans progression depuis 6 mois : ${names}`,
+        kind: "dormant",
+        href: "/suivi",
+      });
+    }
   }
 }

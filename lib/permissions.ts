@@ -55,12 +55,7 @@ const COMMERCIAL: PermissionCode[] = [
 const ROLE_PERMISSIONS: Record<Role, PermissionCode[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS.map((item) => item.code),
   OWNER: ALL_PERMISSIONS.map((item) => item.code).filter((code) => code !== PERMISSIONS.saasAdmin),
-  MANAGER: [
-    ...COMMERCIAL,
-    PERMISSIONS.campaignsManage,
-    PERMISSIONS.usersManage,
-    PERMISSIONS.settingsManage,
-  ],
+  MANAGER: COMMERCIAL,
   SALES: COMMERCIAL,
 };
 

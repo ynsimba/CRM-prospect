@@ -2,11 +2,15 @@ import "server-only";
 
 import { ProspectPriority, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { orgScope } from "@/lib/auth";
-import { computeProspectScore, FOLLOW_UP_STATUS_SLUGS, fullName, type ProspectFilters } from "@/lib/crm";
+import { orgScope, ownedScope } from "@/lib/auth";
+import { computeProspectScore, fullName, type ProspectFilters } from "@/lib/crm";
+import { resolveProspectOwnerScope } from "@/lib/prospect-list-logic";
 import { notify } from "@/lib/notifications";
 import { refreshProspectScore } from "@/lib/scoring";
 import type { SessionPayload } from "@/lib/session";
+import { archivedWhere, notArchivedWhere } from "@/lib/safecheck";
+import { findCompanyByName } from "@/lib/companies";
+import { nextDisplayCode, notifyDirectorsOfFinalStatus, recordStatusHistory } from "@/lib/status-history";
 
 export type { ProspectFilters };
 
@@ -37,18 +41,13 @@ function extraProspectClauses(filters: ProspectFilters): Prisma.ProspectWhereInp
   const q = filters.q?.trim();
   if (q) extra.push(searchClause(q));
   if (filters.archived === true) {
-    extra.push({ status: { OR: [{ isConverted: true }, { isLost: true }] } });
+    extra.push(archivedWhere());
   } else if (filters.archived === false) {
-    extra.push({ status: { isConverted: false, isLost: false } });
+    extra.push(notArchivedWhere());
   }
   if (filters.followUp) {
     extra.push({
       status: { isConverted: false, isLost: false },
-      OR: [
-        { nextContactAt: { not: null } },
-        { lastContactAt: { not: null } },
-        { status: { slug: { in: [...FOLLOW_UP_STATUS_SLUGS] } } },
-      ],
     });
   }
   return extra;
@@ -67,9 +66,9 @@ export async function listProspects(session: SessionPayload, filters: ProspectFi
   return prisma.prospect.findMany({
     where: {
       ...orgScope(session),
+      ...resolveProspectOwnerScope(session, filters),
       ...(filters.statusId ? { statusId: filters.statusId } : {}),
       ...(filters.sourceId ? { sourceId: filters.sourceId } : {}),
-      ...(filters.ownerId ? { ownerId: filters.ownerId } : {}),
       ...(filters.priority ? { priority: filters.priority } : {}),
       ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}),
       ...(filters.tagId ? { tags: { some: { tagId: filters.tagId } } } : {}),
@@ -77,7 +76,7 @@ export async function listProspects(session: SessionPayload, filters: ProspectFi
       ...(extra.length === 1 ? extra[0] : extra.length > 1 ? { AND: extra } : {}),
     },
     include: {
-      company: { select: { id: true, name: true, industry: true, address: true, city: true } },
+      company: { select: { id: true, name: true, industry: true, address: true, city: true, size: true, displayCode: true } },
       status: true,
       source: true,
       owner: { select: { id: true, name: true } },
@@ -85,13 +84,13 @@ export async function listProspects(session: SessionPayload, filters: ProspectFi
       activities: { select: { occurredAt: true }, orderBy: { occurredAt: "desc" }, take: 1 },
     },
     orderBy: prospectOrderBy(filters.sort),
-    take: 80,
+    take: 200,
   });
 }
 
 export async function getProspect(session: SessionPayload, id: string) {
   return prisma.prospect.findFirst({
-    where: { id, ...orgScope(session) },
+    where: { id, ...orgScope(session), ...ownedScope(session) },
     include: {
       company: true,
       contact: true,
@@ -112,6 +111,11 @@ export async function getProspect(session: SessionPayload, id: string) {
         include: { owner: { select: { name: true } } },
         orderBy: { dueAt: "asc" },
         take: 20,
+      },
+      statusHistory: {
+        include: { actor: { select: { name: true } } },
+        orderBy: { occurredAt: "desc" },
+        take: 40,
       },
     },
   });
@@ -137,27 +141,77 @@ export async function findDuplicateProspects(
 export async function createProspect(
   session: SessionPayload,
   input: {
-    firstName: string;
-    lastName: string;
+    firstName?: string;
+    lastName?: string;
     jobTitle?: string;
     email?: string;
     phone?: string;
     whatsapp?: string;
     city?: string;
+    address?: string;
+    industry?: string;
+    companySize?: string;
     category?: string;
+    civility?: string;
     companyId?: string;
+    companyName?: string;
     statusId: string;
     sourceId?: string;
     ownerId?: string;
     priority: ProspectPriority;
     notes?: string;
+    statusComment?: string;
     tagIds?: string[];
+    firstContactAt?: Date;
+    nextContactAt?: Date;
   },
 ) {
-  const firstName = input.firstName.trim();
-  const lastName = input.lastName.trim();
+  if (session.role === "SALES") {
+    input.ownerId = session.userId;
+  }
+
+  const companyName = input.companyName?.trim();
+  let companyId = input.companyId;
+  let displayCode: string | undefined;
+
+  if (companyId) {
+    const company = await prisma.company.findFirst({
+      where: { id: companyId, ...orgScope(session) },
+      select: { id: true, name: true, displayCode: true, prospects: { select: { id: true }, take: 1 } },
+    });
+    if (!company) {
+      throw new Error("Entreprise introuvable.");
+    }
+    if (company.prospects.length > 0) {
+      throw new Error(`Cette entreprise existe déjà : ${company.name}. Ouvrez la fiche existante.`);
+    }
+    displayCode = company.displayCode ?? undefined;
+  } else if (companyName) {
+    const duplicate = await findCompanyByName(session, companyName);
+    if (duplicate) {
+      throw new Error(`Cette entreprise existe déjà : ${duplicate.name}. Recherchez-la dans le formulaire.`);
+    }
+    displayCode = await nextDisplayCode(session.organizationId, "ENT");
+    const company = await prisma.company.create({
+      data: {
+        organizationId: session.organizationId,
+        displayCode,
+        ownerId: input.ownerId ?? session.userId,
+        name: companyName,
+        industry: input.industry,
+        city: input.city,
+        address: input.address,
+        size: input.companySize,
+        country: "RD Congo",
+      },
+    });
+    companyId = company.id;
+  }
+
+  const firstName = input.firstName?.trim() || companyName || "";
+  const lastName = input.lastName?.trim() || (companyName ? "—" : "");
   if (!firstName || !lastName) {
-    throw new Error("Le prénom et le nom sont requis.");
+    throw new Error("Le nom de l’entreprise est requis.");
   }
 
   const status = await prisma.prospectStatus.findFirst({
@@ -187,16 +241,6 @@ export async function createProspect(
     }
   }
 
-  if (input.companyId) {
-    const company = await prisma.company.findFirst({
-      where: { id: input.companyId, ...orgScope(session) },
-      select: { id: true },
-    });
-    if (!company) {
-      throw new Error("Entreprise introuvable.");
-    }
-  }
-
   if (input.tagIds?.length) {
     const tagCount = await prisma.tag.count({
       where: { id: { in: input.tagIds }, ...orgScope(session) },
@@ -206,9 +250,31 @@ export async function createProspect(
     }
   }
 
+  let contactId: string | undefined;
+  if (companyId && input.firstName?.trim() && input.lastName?.trim()) {
+    const contact = await prisma.contact.create({
+      data: {
+        organizationId: session.organizationId,
+        displayCode: await nextDisplayCode(session.organizationId, "CTC"),
+        ownerId: session.userId,
+        companyId,
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        civility: input.civility,
+        jobTitle: input.jobTitle,
+        email: input.email,
+        phone: input.phone,
+        category: input.category ?? "contact",
+      },
+    });
+    contactId = contact.id;
+  }
+
+  const now = new Date();
   const created = await prisma.prospect.create({
     data: {
       organizationId: session.organizationId,
+      displayCode: displayCode ?? (await nextDisplayCode(session.organizationId, "ENT")),
       firstName,
       lastName,
       jobTitle: input.jobTitle,
@@ -216,26 +282,45 @@ export async function createProspect(
       phone: input.phone,
       whatsapp: input.whatsapp,
       city: input.city,
+      address: input.address,
+      industry: input.industry,
+      companySize: input.companySize,
       country: "RD Congo",
       category: input.category,
-      companyId: input.companyId,
+      companyId,
+      contactId,
       statusId: status.id,
+      statusComment: input.statusComment,
       sourceId: input.sourceId,
-      ownerId: input.ownerId ?? session.userId,
+      ownerId: session.role === "SALES" ? session.userId : (input.ownerId ?? session.userId),
       priority: input.priority,
       notes: input.notes,
+      lastActionAt: now,
+      firstContactAt: input.firstContactAt ?? (status.slug === "opportunite" ? null : now),
+      nextContactAt: input.nextContactAt,
       score: computeProspectScore({
         email: input.email,
         phone: input.phone,
         whatsapp: input.whatsapp,
-        companyId: input.companyId,
+        companyId,
         jobTitle: input.jobTitle,
         priority: input.priority,
+        statusSlug: status.slug,
       }).score,
       tags: input.tagIds?.length
         ? { create: input.tagIds.map((tagId) => ({ tagId })) }
         : undefined,
     },
+  });
+
+  await recordStatusHistory({
+    organizationId: session.organizationId,
+    prospectId: created.id,
+    statusId: status.id,
+    statusName: status.name,
+    statusSlug: status.slug,
+    actorId: session.userId,
+    comment: input.statusComment ?? input.notes,
   });
 
   const scored = await refreshProspectScore(session, created.id);
@@ -258,31 +343,9 @@ export async function updateProspectStatus(
   session: SessionPayload,
   prospectId: string,
   statusId: string,
+  statusComment?: string | null,
 ) {
-  const prospect = await prisma.prospect.findFirst({
-    where: { id: prospectId, ...orgScope(session) },
-  });
-  if (!prospect) {
-    throw new Error("Prospect introuvable.");
-  }
-
-  const status = await prisma.prospectStatus.findFirst({
-    where: { id: statusId, ...orgScope(session) },
-  });
-  if (!status) {
-    throw new Error("Statut invalide.");
-  }
-
-  const updated = await prisma.prospect.update({
-    where: { id: prospect.id },
-    data: {
-      statusId: status.id,
-      convertedAt: status.isConverted ? new Date() : prospect.convertedAt,
-      lastContactAt: status.slug === "contacte" ? new Date() : prospect.lastContactAt,
-    },
-  });
-  await refreshProspectScore(session, updated.id);
-  return updated;
+  return updateProspectRow(session, prospectId, { statusId, statusComment });
 }
 
 export async function updateProspectRow(
@@ -291,30 +354,36 @@ export async function updateProspectRow(
   input: {
     statusId?: string;
     notes?: string | null;
+    statusComment?: string | null;
     ownerId?: string | null;
     nextContactAt?: Date | null;
   },
 ) {
   const prospect = await prisma.prospect.findFirst({
-    where: { id: prospectId, ...orgScope(session) },
+    where: {
+      id: prospectId,
+      ...orgScope(session),
+      ...ownedScope(session),
+    },
+    include: { status: true, owner: { select: { name: true } } },
   });
   if (!prospect) {
     throw new Error("Prospect introuvable.");
   }
 
-  let statusId = prospect.statusId;
-  let convertedAt = prospect.convertedAt;
-  let lastContactAt = prospect.lastContactAt;
-  if (input.statusId) {
-    const status = await prisma.prospectStatus.findFirst({
+  if (session.role === "SALES" && input.ownerId !== undefined && input.ownerId !== session.userId) {
+    throw new Error("Seul le directeur peut réassigner un prospect.");
+  }
+
+  let status = prospect.status;
+  if (input.statusId && input.statusId !== prospect.statusId) {
+    const next = await prisma.prospectStatus.findFirst({
       where: { id: input.statusId, ...orgScope(session) },
     });
-    if (!status) {
+    if (!next) {
       throw new Error("Statut invalide.");
     }
-    statusId = status.id;
-    convertedAt = status.isConverted ? new Date() : prospect.convertedAt;
-    lastContactAt = status.slug === "contacte" ? new Date() : prospect.lastContactAt;
+    status = next;
   }
 
   if (input.ownerId) {
@@ -327,17 +396,53 @@ export async function updateProspectRow(
     }
   }
 
+  const now = new Date();
+  const statusChanged = status.id !== prospect.statusId;
+  const commentChanged =
+    input.statusComment !== undefined && input.statusComment !== prospect.statusComment;
+  const nextComment = input.statusComment !== undefined ? input.statusComment : prospect.statusComment;
+  const touchAction = statusChanged || commentChanged;
+
   const updated = await prisma.prospect.update({
     where: { id: prospect.id },
     data: {
-      statusId,
-      convertedAt,
-      lastContactAt,
+      statusId: status.id,
+      convertedAt: status.isConverted ? now : prospect.convertedAt,
+      lastContactAt: status.slug === "lead" || status.slug === "pipeline" ? now : prospect.lastContactAt,
+      firstContactAt:
+        prospect.firstContactAt ??
+        (status.slug !== "opportunite" ? now : prospect.firstContactAt),
+      lastActionAt: touchAction ? now : prospect.lastActionAt,
+      ...(input.statusComment !== undefined ? { statusComment: input.statusComment } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.ownerId !== undefined ? { ownerId: input.ownerId } : {}),
       ...(input.nextContactAt !== undefined ? { nextContactAt: input.nextContactAt } : {}),
     },
+    include: { owner: { select: { name: true } } },
   });
+
+  if (statusChanged || commentChanged) {
+    await recordStatusHistory({
+      organizationId: session.organizationId,
+      prospectId: prospect.id,
+      statusId: status.id,
+      statusName: status.name,
+      statusSlug: status.slug,
+      actorId: session.userId,
+      comment: nextComment,
+    });
+  }
+
+  if (statusChanged && (status.isConverted || status.isLost)) {
+    await notifyDirectorsOfFinalStatus({
+      session,
+      prospect: updated,
+      statusName: status.name,
+      comment: nextComment,
+      ownerName: updated.owner?.name,
+    });
+  }
+
   await refreshProspectScore(session, updated.id);
   return updated;
 }

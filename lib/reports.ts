@@ -61,7 +61,7 @@ export async function getReports(session: SessionPayload, year: number, monthInd
   }));
 
   const contacted = prospects.filter((item) => item.lastContactAt).length;
-  const qualified = rows.filter((row) => row.statusSlug === "qualifie" || row.isConverted).length;
+  const qualified = rows.filter((row) => row.statusSlug === "pipeline" || row.isConverted).length;
   const converted = prospects.filter((item) => item.convertedAt).length;
   const lostProspects = prospects.filter((item) => item.status.isLost).length;
   const wonRevenue = wonOps.reduce((sum, item) => sum + item.amount, 0);

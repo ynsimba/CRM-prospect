@@ -2,12 +2,12 @@
 
 import { ActivityType, ProspectPriority, TaskStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { requirePermission } from "@/lib/auth";
+import { requireDirector, requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
 import { createActivity } from "@/lib/activities";
 import { emptyToNull, readOptionalId } from "@/lib/crm";
 import { PERMISSIONS } from "@/lib/permissions";
-import { createTask, advanceTask } from "@/lib/tasks";
+import { createTask, advanceTask, setTaskStatus, setTaskOwnerNote, setTaskDirectorNote } from "@/lib/tasks";
 
 export type ActivityFormState = {
   error?: string;
@@ -43,6 +43,12 @@ function revalidateWork(paths: string[]) {
   revalidatePath("/taches");
   revalidatePath("/relances");
   revalidatePath("/prospects");
+  revalidatePath("/interface");
+  revalidatePath("/direction");
+  revalidatePath("/direction/assignation");
+  revalidatePath("/direction/taches");
+  revalidatePath("/direction/taches/departement");
+  revalidatePath("/direction/taches/archives");
   revalidatePath("/pipeline");
   revalidatePath("/notifications");
 }
@@ -98,6 +104,8 @@ export async function createTaskAction(
     const task = await createTask(session, {
       title: String(formData.get("title") ?? ""),
       description: emptyToNull(formData.get("description")) ?? undefined,
+      directorNote: emptyToNull(formData.get("directorNote")) ?? undefined,
+      ownerNote: emptyToNull(formData.get("ownerNote")) ?? undefined,
       priority: readPriority(formData.get("priority")),
       dueAt: readDateTime(formData.get("dueAt")),
       ownerId: readOptionalId(formData.get("ownerId")),
@@ -115,7 +123,7 @@ export async function createTaskAction(
       task.prospectId ? `/prospects/${task.prospectId}` : "",
       task.opportunityId ? `/pipeline/${task.opportunityId}` : "",
     ].filter(Boolean));
-    return { success: "Tâche créée." };
+    return { success: "Tâche assignée au commercial." };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Impossible de créer la tâche.",
@@ -131,6 +139,60 @@ export async function advanceTaskAction(taskId: string) {
     entity: "Task",
     entityId: task.id,
     summary: `${task.title} → ${task.status}`,
+  });
+  revalidateWork([
+    task.prospectId ? `/prospects/${task.prospectId}` : "",
+    task.opportunityId ? `/pipeline/${task.opportunityId}` : "",
+  ].filter(Boolean));
+}
+
+export async function saveTaskOwnerNoteAction(taskId: string, formData: FormData) {
+  const session = await requirePermission(PERMISSIONS.activitiesManage);
+  const task = await setTaskOwnerNote(
+    session,
+    taskId,
+    emptyToNull(formData.get("ownerNote")) ?? "",
+  );
+  await auditAs(session, {
+    action: "task.comment",
+    entity: "Task",
+    entityId: task.id,
+    summary: `${task.title} — compte-rendu`,
+  });
+  revalidateWork([
+    task.prospectId ? `/prospects/${task.prospectId}` : "",
+    task.opportunityId ? `/pipeline/${task.opportunityId}` : "",
+  ].filter(Boolean));
+}
+
+export async function saveTaskDirectorNoteAction(taskId: string, formData: FormData) {
+  const session = await requireDirector();
+  const task = await setTaskDirectorNote(session, taskId, emptyToNull(formData.get("directorNote")));
+  await auditAs(session, {
+    action: "task.directorComment",
+    entity: "Task",
+    entityId: task.id,
+    summary: `${task.title} — commentaire direction`,
+  });
+  revalidateWork([
+    task.prospectId ? `/prospects/${task.prospectId}` : "",
+    task.opportunityId ? `/pipeline/${task.opportunityId}` : "",
+  ].filter(Boolean));
+}
+
+export async function closeIncompleteTaskAction(taskId: string, formData: FormData) {
+  const session = await requirePermission(PERMISSIONS.activitiesManage);
+  const task = await setTaskStatus(
+    session,
+    taskId,
+    TaskStatus.CANCELLED,
+    emptyToNull(formData.get("ownerNote")) ?? undefined,
+  );
+  await auditAs(session, {
+    action: "task.incomplete",
+    entity: "Task",
+    entityId: task.id,
+    summary: `${task.title} → clôturé incomplet`,
   });
   revalidateWork([
     task.prospectId ? `/prospects/${task.prospectId}` : "",

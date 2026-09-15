@@ -1,5 +1,6 @@
 import type { Role } from "@prisma/client";
 import { PERMISSIONS, roleHasPermission, type PermissionCode } from "@/lib/permissions";
+import { isAdminRole, isDirectionRole, isSalesRole } from "@/lib/roles";
 
 export type NavItem = {
   href: string;
@@ -24,6 +25,7 @@ export const CONFIG_NAV: NavItem[] = [
   { href: "/taches", icon: "bi-check2-square", label: "Tâches", permission: PERMISSIONS.activitiesRead },
   { href: "/relances", icon: "bi-alarm", label: "Relances", permission: PERMISSIONS.activitiesRead },
   { href: "/equipe", icon: "bi-person-badge", label: "Équipe", permission: PERMISSIONS.teamRead },
+  { href: "/utilisateurs", icon: "bi-person-gear", label: "Utilisateurs", permission: PERMISSIONS.usersManage },
   { href: "/campagnes", icon: "bi-megaphone", label: "Campagnes", permission: PERMISSIONS.campaignsManage },
   { href: "/journal", icon: "bi-journal-text", label: "Journal", permission: PERMISSIONS.settingsManage },
 ];
@@ -35,8 +37,31 @@ export const SALES_NAV: NavItem[] = [
   { href: "/prospects/nouveau", icon: "bi-person-plus-fill", label: "Ajouter un prospect" },
   { href: "/suivi", icon: "bi-eye", label: "Suivi prospect" },
   { href: "/taches", icon: "bi-check2-square", label: "Mes tâches" },
+  { href: "/notes", icon: "bi-journal-richtext", label: "Mes notes" },
   { href: "/archives", icon: "bi-archive", label: "Archives" },
 ];
+
+export const COMMERCIAL_NAV = SALES_NAV;
+
+export const DIRECTION_NAV: NavItem[] = [
+  { href: "/direction", icon: "bi-speedometer2", label: "Tableau de bord" },
+  { href: "/direction/prospects", icon: "bi-people", label: "Tous les Prospect" },
+  { href: "/direction/assignation", icon: "bi-person-check", label: "Assignation Tâches" },
+  { href: "/direction/taches", icon: "bi-list-check", label: "Suivie des tâches" },
+  { href: "/direction/taches/departement", icon: "bi-diagram-3", label: "Tâches par département" },
+  { href: "/direction/taches/archives", icon: "bi-archive", label: "Archives Task par département" },
+  { href: "/direction/archives", icon: "bi-archive-fill", label: "Archive Prospect" },
+];
+
+export const SIDEBAR_MODULES: NavItem[] = [
+  { href: "/taches", icon: "bi-bullseye", label: "Mes Tâches" },
+  { href: "/notes", icon: "bi-journal-text", label: "Mes notes" },
+  { href: "/notifications", icon: "bi-chat-dots", label: "Fil de Discussion" },
+];
+
+const COMMERCIAL_HREFS = new Set(COMMERCIAL_NAV.map((item) => item.href));
+const DIRECTION_HREFS = new Set(DIRECTION_NAV.map((item) => item.href));
+const MODULE_HREFS = new Set(SIDEBAR_MODULES.map((item) => item.href));
 
 const ADMIN_HREFS = new Set(["/admin", "/parametres"]);
 
@@ -49,10 +74,42 @@ export function visibleNav(items: NavItem[], role?: Role) {
 }
 
 export function navForRole(role?: Role) {
-  if (role === "SALES") {
+  if (isSalesRole(role)) {
     return { main: SALES_NAV, config: [] as NavItem[] };
   }
+  if (role === "MANAGER") {
+    return { main: DIRECTION_NAV, config: [] as NavItem[] };
+  }
   return { main: visibleNav(MAIN_NAV, role), config: visibleNav(CONFIG_NAV, role) };
+}
+
+export function extraMainNav(role?: Role) {
+  return navForRole(role).main.filter(
+    (item) => !COMMERCIAL_HREFS.has(item.href) && !DIRECTION_HREFS.has(item.href) && !MODULE_HREFS.has(item.href),
+  );
+}
+
+export function visibleSidebarModules(role?: Role) {
+  if (isDirectionRole(role) && !isAdminRole(role) && !isSalesRole(role)) {
+    return SIDEBAR_MODULES.filter((item) => item.href === "/notifications");
+  }
+  return SIDEBAR_MODULES;
+}
+
+export function showCommercialModule(role?: Role) {
+  return isSalesRole(role) || isAdminRole(role);
+}
+
+export function showDirectionModule(role?: Role) {
+  return isDirectionRole(role);
+}
+
+export function isCommercialSectionActive(activeHref: string) {
+  return COMMERCIAL_NAV.some((item) => isNavActive(item.href, activeHref, COMMERCIAL_NAV));
+}
+
+export function isDirectionSectionActive(activeHref: string) {
+  return DIRECTION_NAV.some((item) => isNavActive(item.href, activeHref, DIRECTION_NAV));
 }
 
 export function isNavActive(href: string, activeHref: string, items: NavItem[]) {

@@ -1,56 +1,19 @@
-import Link from "next/link";
 import Shell from "@/components/Shell";
-import ProspectGrid, { type ProspectGridRow } from "@/components/ProspectGrid";
+import ProspectGrid from "@/components/ProspectGrid";
+import ProspectQueryBar from "@/components/ProspectQueryBar";
 import { requirePermission } from "@/lib/auth";
-import { fullName, parseProspectFilters } from "@/lib/crm";
+import { parseProspectFilters } from "@/lib/crm";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
+import { toProspectGridRow } from "@/lib/prospect-grid-row";
 import {
-  PROSPECT_DENSITIES,
-  PROSPECT_GROUPS,
-  PROSPECT_SORTS,
-  groupProspects,
-  lastActionDate,
-  needsFollowUpAlert,
+  filterGridRows,
+  groupGridRows,
   parseProspectListView,
-  prospectListHref,
+  prismaProspectSort,
+  sortGridRows,
 } from "@/lib/prospect-list-logic";
 import { listProspects } from "@/lib/prospects";
-
-function toGridRow(prospect: Awaited<ReturnType<typeof listProspects>>[number]): ProspectGridRow {
-  const companyName = prospect.company?.name ?? fullName(prospect.firstName, prospect.lastName);
-  const lastAction = lastActionDate({
-    lastContactAt: prospect.lastContactAt,
-    updatedAt: prospect.updatedAt,
-    activityAt: prospect.activities[0]?.occurredAt ?? null,
-  });
-  const address = [prospect.company?.address ?? prospect.address, prospect.company?.city ?? prospect.city]
-    .filter(Boolean)
-    .join(", ");
-
-  return {
-    id: prospect.id,
-    href: `/prospects/${prospect.id}`,
-    companyName,
-    industry: prospect.company?.industry ?? prospect.industry ?? "",
-    address,
-    lastActionAt: lastAction.toISOString(),
-    meetingAt: prospect.nextContactAt?.toISOString() ?? null,
-    statusId: prospect.statusId,
-    statusName: prospect.status.name,
-    statusSlug: prospect.status.slug,
-    isConverted: prospect.status.isConverted,
-    isLost: prospect.status.isLost,
-    notes: prospect.notes ?? "",
-    ownerId: prospect.owner?.id ?? "",
-    ownerName: prospect.owner?.name ?? "",
-    needsFollowUp: needsFollowUpAlert({
-      nextContactAt: prospect.nextContactAt,
-      isConverted: prospect.status.isConverted,
-      isLost: prospect.status.isLost,
-    }),
-  };
-}
 
 export default async function ProspectsPage({
   searchParams,
@@ -67,7 +30,16 @@ export default async function ProspectsPage({
     mine?: string;
     group?: string;
     sort?: string;
+    dir?: string;
     density?: string;
+    company?: string;
+    industry?: string;
+    address?: string;
+    lastAction?: string;
+    meeting?: string;
+    notes?: string;
+    followUp?: string;
+    pin?: string;
   }>;
 }) {
   const session = await requirePermission(PERMISSIONS.prospectsRead);
@@ -76,6 +48,7 @@ export default async function ProspectsPage({
   const params = await searchParams;
   const filters = parseProspectFilters(params);
   const view = parseProspectListView(params);
+  const prismaSort = prismaProspectSort(view.sort);
   const query = {
     q: params.q,
     status: params.status,
@@ -88,115 +61,60 @@ export default async function ProspectsPage({
     mine: view.mine ? "1" : undefined,
     group: view.group || undefined,
     sort: view.sort !== "updated" ? view.sort : undefined,
+    dir: params.dir,
     density: view.density !== "medium" ? view.density : undefined,
+    company: params.company,
+    industry: params.industry,
+    address: params.address,
+    lastAction: params.lastAction,
+    meeting: params.meeting,
+    notes: params.notes,
+    followUp: params.followUp,
+    pin: params.pin,
   };
   const [prospects, options] = await Promise.all([
     listProspects(session, {
       ...filters,
+      mine: view.mine,
       ownerId: view.mine ? session.userId : filters.ownerId,
-      sort: view.sort,
-      ...(isSales ? { archived: false } : {}),
+      sort: prismaSort,
+      archived: false,
     }),
     getCrmOptions(session),
   ]);
-  const groups = groupProspects(prospects, view.group);
+  const visible = view.mine
+    ? prospects.filter((item) => item.ownerId === session.userId || item.owner?.id === session.userId)
+    : prospects;
+  const allRows = visible.map(toProspectGridRow);
+  const rows = sortGridRows(
+    filterGridRows(allRows, {
+      company: params.company,
+      industry: params.industry,
+      address: params.address,
+      lastAction: params.lastAction,
+      meeting: params.meeting,
+      notes: params.notes,
+      followUp: params.followUp,
+      status: params.status,
+      owner: view.mine ? undefined : params.owner,
+    }),
+    view.sort,
+    view.dir,
+  );
+  const groups = groupGridRows(rows, view.group);
 
   return (
     <Shell activeHref="/prospects">
-      <div className="page-head">
-        <div>
-          <h1 className="page-title crumb">
-            <span>Interface Commerciale</span>
-            <i className="bi bi-chevron-right" aria-hidden />
-            <strong>Tous les prospects</strong>
-          </h1>
-          <p className="card-sub">Liste de toutes nos entreprises en prospection</p>
-        </div>
-      </div>
+      <ProspectQueryBar
+        query={query}
+        view={view}
+        search={params.q ?? ""}
+        canImport={canManage}
+        isSales={isSales}
+      />
 
-      <article className="dash-card prospect-module" style={{ marginBottom: 16 }}>
-        <div className="module-tabs" role="tablist" aria-label="Périmètre des prospects">
-          <Link
-            href={prospectListHref(query, { mine: undefined })}
-            className={`module-tab ${view.mine ? "" : "active"}`}
-            role="tab"
-            aria-selected={!view.mine}
-          >
-            Tous les Prospects
-          </Link>
-          <Link
-            href={prospectListHref(query, { mine: "1" })}
-            className={`module-tab ${view.mine ? "active" : ""}`}
-            role="tab"
-            aria-selected={view.mine}
-          >
-            Mes Prospects
-          </Link>
-        </div>
-
-        <form method="get" className="module-toolbar">
-          {view.mine ? <input type="hidden" name="mine" value="1" /> : null}
-          {params.status ? <input type="hidden" name="status" value={params.status} /> : null}
-          {params.source ? <input type="hidden" name="source" value={params.source} /> : null}
-          {params.owner && !view.mine ? <input type="hidden" name="owner" value={params.owner} /> : null}
-          {params.tag ? <input type="hidden" name="tag" value={params.tag} /> : null}
-          {params.priority ? <input type="hidden" name="priority" value={params.priority} /> : null}
-          {params.city ? <input type="hidden" name="city" value={params.city} /> : null}
-          {params.score ? <input type="hidden" name="score" value={params.score} /> : null}
-
-          <label className="toolbar-control">
-            Grouper
-            <select name="group" defaultValue={view.group}>
-              {PROSPECT_GROUPS.map((item) => (
-                <option key={item.value || "none"} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="toolbar-control">
-            Trier
-            <select name="sort" defaultValue={view.sort}>
-              {PROSPECT_SORTS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="toolbar-control">
-            <i className="bi bi-text-paragraph" aria-hidden />
-            <span className="visually-hidden">Hauteur des lignes</span>
-            <select name="density" defaultValue={view.density} aria-label="Hauteur des lignes">
-              {PROSPECT_DENSITIES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="toolbar-search">
-            <i className="bi bi-search" aria-hidden />
-            <input name="q" defaultValue={params.q ?? ""} placeholder="Rechercher entreprises" />
-          </label>
-          <button type="submit" className="btn-download">
-            Appliquer
-          </button>
-          <details className="more-menu">
-            <summary aria-label="Plus d’actions">
-              <i className="bi bi-three-dots" aria-hidden />
-            </summary>
-            <div className="more-menu-list">
-              <Link href="/prospects/nouveau">Ajouter un prospect</Link>
-              <Link href="/prospects/export">Exporter CSV</Link>
-              {canManage && !isSales ? <Link href="/import">Importer</Link> : null}
-            </div>
-          </details>
-        </form>
-      </article>
-
-      <article className="dash-card">
-        {prospects.length === 0 ? (
+      <article className="dash-card query-grid">
+        {rows.length === 0 ? (
           <p className="empty-copy">Aucun prospect pour ces critères.</p>
         ) : (
           groups.map((group) => (
@@ -208,11 +126,17 @@ export default async function ProspectsPage({
                 </h3>
               ) : null}
               <ProspectGrid
-                rows={group.items.map(toGridRow)}
+                rows={group.items}
                 statuses={options.statuses}
                 owners={options.owners}
                 density={view.density}
                 canManage={canManage}
+                canReassign={!isSales}
+                variant="commercial"
+                query={query}
+                sort={view.sort}
+                dir={view.dir}
+                filterSource={allRows}
               />
             </div>
           ))

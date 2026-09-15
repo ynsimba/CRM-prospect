@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Shell from "@/components/Shell";
 import { requirePermission } from "@/lib/auth";
 import { getContact } from "@/lib/contacts";
-import { fullName, statusPillClass, whatsappHref } from "@/lib/crm";
+import { fullName, personCategoryLabel, statusPillClass, whatsappHref } from "@/lib/crm";
 import { PERMISSIONS } from "@/lib/permissions";
 
 export default async function ContactDetailPage({
@@ -40,6 +40,14 @@ export default async function ContactDetailPage({
               <table className="data-table">
                 <tbody>
                   <tr>
+                    <td>ID</td>
+                    <td>{contact.displayCode ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Titre</td>
+                    <td>{contact.civility ?? "—"}</td>
+                  </tr>
+                  <tr>
                     <td>Entreprise</td>
                     <td>
                       {contact.company ? (
@@ -48,6 +56,14 @@ export default async function ContactDetailPage({
                         "—"
                       )}
                     </td>
+                  </tr>
+                  <tr>
+                    <td>Fonction</td>
+                    <td>{contact.jobTitle ?? "—"}</td>
+                  </tr>
+                  <tr>
+                    <td>Catégorie</td>
+                    <td>{personCategoryLabel(contact.category)}</td>
                   </tr>
                   <tr>
                     <td>Commercial</td>

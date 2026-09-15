@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Shell from "@/components/Shell";
 import ProspectForm from "@/components/ProspectForm";
 import { requirePermission } from "@/lib/auth";
@@ -8,34 +7,23 @@ import { PERMISSIONS } from "@/lib/permissions";
 export default async function NewProspectPage() {
   const session = await requirePermission(PERMISSIONS.prospectsManage);
   const options = await getCrmOptions(session);
-  const defaultStatusId = options.statuses.find((item) => item.slug === "nouveau")?.id;
+  const defaultStatusId = options.statuses.find((item) => item.slug === "opportunite")?.id;
 
   return (
     <Shell activeHref="/prospects/nouveau">
-      <div className="page-head">
-        <div>
-          <h1 className="page-title">Ajouter un prospect</h1>
-          <p className="card-sub">Nouvelle fiche commerciale.</p>
-        </div>
-        <Link href="/prospects" className="table-action">
-          Tous les prospects
-        </Link>
-      </div>
-
-      <div className="row g-3">
-        <div className="col-12 col-xl-6">
-          <article className="dash-card">
-            <ProspectForm
-              statuses={options.statuses}
-              sources={options.sources}
-              tags={options.tags}
-              companies={options.companies}
-              owners={options.owners}
-              defaultStatusId={defaultStatusId}
-              defaultOwnerId={session.userId}
-            />
-          </article>
-        </div>
+      <div className="prospect-entry">
+        <h1 className="page-title">Ajouter un Prospect</h1>
+        <p className="card-sub">Remplissez les champs du formulaire afin d’ajouter un nouveau prospect.</p>
+        <ProspectForm
+          statuses={options.statuses}
+          sources={options.sources}
+          tags={options.tags}
+          companies={options.companies}
+          owners={options.owners}
+          defaultStatusId={defaultStatusId}
+          defaultOwnerId={session.userId}
+          lockOwner={session.role === "SALES"}
+        />
       </div>
     </Shell>
   );

@@ -1,14 +1,6 @@
-export const DEFAULT_STATUSES = [
-  { name: "Nouveau", slug: "nouveau", sortOrder: 0, isConverted: false, isLost: false },
-  { name: "À contacter", slug: "a-contacter", sortOrder: 1, isConverted: false, isLost: false },
-  { name: "Contacté", slug: "contacte", sortOrder: 2, isConverted: false, isLost: false },
-  { name: "Réponse reçue", slug: "reponse", sortOrder: 3, isConverted: false, isLost: false },
-  { name: "Qualifié", slug: "qualifie", sortOrder: 4, isConverted: false, isLost: false },
-  { name: "Non qualifié", slug: "non-qualifie", sortOrder: 5, isConverted: false, isLost: true },
-  { name: "En attente", slug: "en-attente", sortOrder: 6, isConverted: false, isLost: false },
-  { name: "Converti", slug: "converti", sortOrder: 7, isConverted: true, isLost: false },
-  { name: "Perdu", slug: "perdu", sortOrder: 8, isConverted: false, isLost: true },
-];
+import { SAFECHECK_STATUSES } from "@/lib/safecheck";
+
+export const DEFAULT_STATUSES = SAFECHECK_STATUSES.map((status) => ({ ...status }));
 
 export const DEFAULT_SOURCES = [
   { name: "Site web", slug: "site" },

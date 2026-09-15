@@ -54,6 +54,7 @@ export default async function CompaniesPage({
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>ID</th>
                       <th>Entreprise</th>
                       <th>Ville</th>
                       <th>Secteur</th>
@@ -65,6 +66,7 @@ export default async function CompaniesPage({
                   <tbody>
                     {companies.map((company) => (
                       <tr key={company.id}>
+                        <td>{company.displayCode ?? "—"}</td>
                         <td>
                           <Link href={`/entreprises/${company.id}`}>
                             <strong>{company.name}</strong>

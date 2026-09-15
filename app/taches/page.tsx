@@ -1,14 +1,14 @@
-import Link from "next/link";
 import { TaskStatus } from "@prisma/client";
 import Shell from "@/components/Shell";
 import TaskForm from "@/components/TaskForm";
-import { advanceTaskAction } from "@/app/actions/activities";
-import { nextTaskStatus, TASK_STATUS_LABELS, taskStatusPill } from "@/lib/activity-logic";
+import TaskTable from "@/components/TaskTable";
+import LiveRefresh from "@/components/LiveRefresh";
 import { requirePermission } from "@/lib/auth";
-import { PRIORITY_LABELS, fullName, priorityPillClass } from "@/lib/crm";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getPipelineOptions } from "@/lib/pipeline";
+import { TASK_STATUS_LABELS } from "@/lib/activity-logic";
 import { listTasks } from "@/lib/tasks";
+import { listSalesAgents } from "@/lib/users";
 
 export default async function TasksPage({
   searchParams,
@@ -17,16 +17,18 @@ export default async function TasksPage({
 }) {
   const session = await requirePermission(PERMISSIONS.activitiesRead);
   const isSales = session.role === "SALES";
-  const canManage = roleHasPermission(session.role, PERMISSIONS.activitiesManage);
+  const canAssign = roleHasPermission(session.role, PERMISSIONS.activitiesManage) && !isSales;
+  const canUpdate = roleHasPermission(session.role, PERMISSIONS.activitiesManage);
   const params = await searchParams;
   const status =
     params.status && Object.values(TaskStatus).includes(params.status as TaskStatus)
       ? (params.status as TaskStatus)
       : undefined;
   const ownerId = isSales ? session.userId : params.owner;
-  const [tasks, options] = await Promise.all([
-    listTasks(session, { q: params.q, status, ownerId }),
+  const [tasks, options, agents] = await Promise.all([
+    listTasks(session, { q: params.q, status, ownerId, sort: isSales ? "live" : "due" }),
     getPipelineOptions(session),
+    canAssign ? listSalesAgents(session) : Promise.resolve([]),
   ]);
 
   return (
@@ -34,8 +36,13 @@ export default async function TasksPage({
       <div className="page-head">
         <div>
           <h1 className="page-title">{isSales ? "Mes tâches" : "Tâches"}</h1>
-          <p className="card-sub">À faire, en cours, terminées — liées aux prospects et affaires.</p>
+          <p className="card-sub">
+            {isSales
+              ? "Tâches reçues de la direction — démarre, commente et clôture en temps réel."
+              : "À faire, en cours, fait, clôturé incomplet — jours restants et double commentaire."}
+          </p>
         </div>
+        {isSales ? <LiveRefresh label="Nouvelles tâches" /> : null}
       </div>
 
       <article className="dash-card" style={{ marginBottom: 16 }}>
@@ -83,84 +90,20 @@ export default async function TasksPage({
       </article>
 
       <div className="row g-3">
-        <div className={canManage ? "col-12 col-xl-8" : "col-12"}>
+        <div className={canAssign ? "col-12 col-xl-8" : "col-12"}>
           <article className="dash-card">
-            {tasks.length === 0 ? (
-              <p className="empty-copy">Aucune tâche pour ces critères.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Tâche</th>
-                      <th>Échéance</th>
-                      <th>Priorité</th>
-                      <th>Statut</th>
-                      <th>Assigné</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tasks.map((task) => (
-                      <tr key={task.id}>
-                        <td>
-                          <strong>{task.title}</strong>
-                          <div className="muted-line">
-                            {task.prospect ? (
-                              <Link href={`/prospects/${task.prospect.id}`}>
-                                {fullName(task.prospect.firstName, task.prospect.lastName)}
-                              </Link>
-                            ) : task.opportunity ? (
-                              <Link href={`/pipeline/${task.opportunity.id}`}>{task.opportunity.name}</Link>
-                            ) : (
-                              (task.company?.name ?? "—")
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          {task.dueAt
-                            ? task.dueAt.toLocaleString("fr-CD", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })
-                            : "—"}
-                        </td>
-                        <td>
-                          <span className={`status-pill ${priorityPillClass(task.priority)}`}>
-                            {PRIORITY_LABELS[task.priority]}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${taskStatusPill(task.status)}`}>
-                            {TASK_STATUS_LABELS[task.status]}
-                          </span>
-                        </td>
-                        <td>{task.owner.name}</td>
-                        <td>
-                          {canManage && nextTaskStatus(task.status) ? (
-                            <form action={advanceTaskAction.bind(null, task.id)}>
-                              <button type="submit" className="table-action">
-                                {nextTaskStatus(task.status) === "IN_PROGRESS" ? "Démarrer" : "Terminer"}
-                              </button>
-                            </form>
-                          ) : null}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <TaskTable tasks={tasks} canManage={canUpdate} showOwner={!isSales} />
           </article>
         </div>
-        {canManage ? (
+        {canAssign ? (
           <div className="col-12 col-xl-4">
             <article className="dash-card">
-              <h3>Nouvelle tâche</h3>
+              <h3>Assigner une tâche</h3>
               <TaskForm
-                owners={isSales ? [] : options.owners}
+                owners={agents}
                 prospects={options.prospects}
-                defaultOwnerId={session.userId}
+                requireOwner
+                submitLabel="Assigner au commercial"
               />
             </article>
           </div>

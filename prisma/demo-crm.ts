@@ -1,6 +1,7 @@
 import { ActivityType, PrismaClient, ProspectPriority } from "@prisma/client";
 import { computeLeadScore, computeProspectScore, fullName } from "../lib/crm";
 import { encodeNotificationBody } from "../lib/notify-logic";
+import { demoStaffLookupEmails } from "../lib/staff-email";
 
 type SeedProspect = {
   firstName: string;
@@ -87,44 +88,44 @@ const COMPANIES = [
 ];
 
 const CONTACTS = [
-  { firstName: "Patrick", lastName: "Mwamba", jobTitle: "Directeur général", email: "pmwamba@abc-sarl.cd", phone: "+243 810 200 011", company: "ABC SARL", owner: "jean" as const },
-  { firstName: "Grace", lastName: "Ilunga", jobTitle: "DAF", email: "gilunga@abc-sarl.cd", phone: "+243 810 200 012", company: "ABC SARL", owner: "jean" as const },
-  { firstName: "Cédric", lastName: "Kasongo", jobTitle: "Associé", email: "ckasongo@xyzconsulting.cd", phone: "+243 810 200 021", company: "XYZ Consulting", owner: "marie" as const },
-  { firstName: "Sarah", lastName: "Mbuyi", jobTitle: "Product owner", email: "smbuyi@digitalcongo.cd", phone: "+243 810 200 031", whatsapp: "+243 810 200 031", company: "Digital Congo", owner: "jean" as const },
-  { firstName: "Joseph", lastName: "Kabasele", jobTitle: "Directeur achats", email: "jkabasele@kbg.cd", phone: "+243 810 200 041", company: "Kinshasa Business Group", owner: "marie" as const },
+  { firstName: "Patrick", lastName: "Mwamba", civility: "Mr", category: "contact", jobTitle: "Directeur général", email: "pmwamba@abc-sarl.cd", phone: "+243 810 200 011", company: "ABC SARL", owner: "jean" as const },
+  { firstName: "Grace", lastName: "Ilunga", civility: "Mme", category: "contact", jobTitle: "DAF", email: "gilunga@abc-sarl.cd", phone: "+243 810 200 012", company: "ABC SARL", owner: "jean" as const },
+  { firstName: "Cédric", lastName: "Kasongo", civility: "Mr", category: "porteur", jobTitle: "Associé", email: "ckasongo@xyzconsulting.cd", phone: "+243 810 200 021", company: "XYZ Consulting", owner: "marie" as const },
+  { firstName: "Sarah", lastName: "Mbuyi", civility: "Mme", category: "contact", jobTitle: "Product owner", email: "smbuyi@digitalcongo.cd", phone: "+243 810 200 031", whatsapp: "+243 810 200 031", company: "Digital Congo", owner: "jean" as const },
+  { firstName: "Joseph", lastName: "Kabasele", civility: "Mr", category: "porteur", jobTitle: "Directeur achats", email: "jkabasele@kbg.cd", phone: "+243 810 200 041", company: "Kinshasa Business Group", owner: "marie" as const },
 ];
 
 const PROSPECTS: SeedProspect[] = [
-  { firstName: "Alain", lastName: "Tshibanda", jobTitle: "Acheteur", email: "atshibanda@abc-sarl.cd", phone: "+243 810 300 001", city: "Gombe", company: "ABC SARL", status: "qualifie", source: "recommandation", owner: "jean", priority: "HIGH", tags: ["B2B", "Gros budget"], notes: "Intéressé par un CRM pour 40 commerciaux.", nextDays: 2 },
-  { firstName: "Béatrice", lastName: "Lumbala", jobTitle: "Resp. marketing", email: "blumbala@abc-sarl.cd", phone: "+243 810 300 002", whatsapp: "+243 810 300 002", city: "Gombe", company: "ABC SARL", status: "contacte", source: "linkedin", owner: "jean", priority: "NORMAL", tags: ["À relancer"], nextDays: -1 },
-  { firstName: "Christian", lastName: "Ngoy", jobTitle: "Consultant", email: "cngoy@xyzconsulting.cd", phone: "+243 810 300 003", city: "Gombe", company: "XYZ Consulting", status: "reponse", source: "site", owner: "marie", priority: "HIGH", tags: ["Hot Lead"], nextDays: 0 },
-  { firstName: "Diane", lastName: "Kalonji", jobTitle: "Associée", email: "dkalonji@xyzconsulting.cd", phone: "+243 810 300 004", city: "Gombe", company: "XYZ Consulting", status: "nouveau", source: "salon", owner: "marie", priority: "NORMAL", tags: ["B2B"] },
-  { firstName: "Éric", lastName: "Kabongo", jobTitle: "CTO", email: "ekabongo@digitalcongo.cd", phone: "+243 810 300 005", whatsapp: "+243 810 300 005", city: "Gombe", company: "Digital Congo", status: "qualifie", source: "whatsapp", owner: "jean", priority: "URGENT", tags: ["VIP", "Hot Lead"], notes: "Demo prévue.", nextDays: 1 },
-  { firstName: "Fatou", lastName: "Diallo", jobTitle: "Growth", email: "fdiallo@digitalcongo.cd", phone: "+243 810 300 006", city: "Gombe", company: "Digital Congo", status: "a-contacter", source: "facebook", owner: "jean", priority: "NORMAL", nextDays: 3 },
-  { firstName: "Gaël", lastName: "Mputu", jobTitle: "Directeur commercial", email: "gmputu@kbg.cd", phone: "+243 810 300 007", city: "Limete", company: "Kinshasa Business Group", status: "en-attente", source: "terrain", owner: "marie", priority: "HIGH", tags: ["Gros budget"], nextDays: 5 },
-  { firstName: "Hélène", lastName: "Tshienda", jobTitle: "Office manager", email: "htshienda@kbg.cd", phone: "+243 810 300 008", city: "Limete", company: "Kinshasa Business Group", status: "contacte", source: "telephone", owner: "marie", priority: "LOW", nextDays: -4 },
-  { firstName: "Isaac", lastName: "Mukendi", jobTitle: "Chef de projet", email: "imukendi@rawbank.cd", phone: "+243 810 300 009", city: "Gombe", company: "Rawbank Corporate", status: "qualifie", source: "email", owner: "jean", priority: "HIGH", tags: ["VIP"], nextDays: 2 },
-  { firstName: "Jeanne", lastName: "Banza", jobTitle: "RH", email: "jbanza@rawbank.cd", phone: "+243 810 300 010", city: "Gombe", company: "Rawbank Corporate", status: "non-qualifie", source: "linkedin", owner: "jean", priority: "LOW" },
-  { firstName: "Kevin", lastName: "Lutumba", jobTitle: "Key account", email: "klutumba@airtel.cd", phone: "+243 810 300 011", whatsapp: "+243 810 300 011", city: "Gombe", company: "Airtel Congo", status: "reponse", source: "recommandation", owner: "marie", priority: "NORMAL", tags: ["B2B"], nextDays: 4 },
-  { firstName: "Léa", lastName: "Nsimba", jobTitle: "Commerciale", email: "lnsimba@airtel.cd", phone: "+243 810 300 012", city: "Gombe", company: "Airtel Congo", status: "nouveau", source: "instagram", owner: "marie", priority: "NORMAL" },
-  { firstName: "Marc", lastName: "Kabila", jobTitle: "Gérant", email: "marc.kabila@gmail.com", phone: "+243 810 300 013", city: "Lemba", status: "a-contacter", source: "terrain", owner: "jean", priority: "NORMAL", notes: "Boutique de pièces auto, Matadi-Kibala.", nextDays: -2 },
-  { firstName: "Nadia", lastName: "Phiri", jobTitle: "Propriétaire", email: "nphiri@yahoo.fr", phone: "+243 810 300 014", whatsapp: "+243 810 300 014", city: "Ngaliema", status: "contacte", source: "whatsapp", owner: "marie", priority: "HIGH", tags: ["À relancer"], nextDays: 0 },
-  { firstName: "Olivier", lastName: "Mbuyi", jobTitle: "Importateur", email: "olivier.mbuyi@outlook.com", phone: "+243 810 300 015", city: "Limete", status: "qualifie", source: "salon", owner: "jean", priority: "URGENT", tags: ["Hot Lead", "Gros budget"], nextDays: 1 },
-  { firstName: "Pauline", lastName: "Kasongo", jobTitle: "Pharmacienne", email: "pkasongo@pharma.cd", phone: "+243 810 300 016", city: "Kalamu", status: "nouveau", source: "site", owner: "marie", priority: "NORMAL" },
-  { firstName: "Quincy", lastName: "Tumba", jobTitle: "Logisticien", email: "qtumba@logirdc.cd", phone: "+243 810 300 017", city: "Ndjili", status: "en-attente", source: "telephone", owner: "jean", priority: "NORMAL", nextDays: 7 },
-  { firstName: "Rachel", lastName: "Mwamba", jobTitle: "Directrice", email: "rmwamba@hotels.cd", phone: "+243 810 300 018", city: "Gombe", status: "reponse", source: "linkedin", owner: "marie", priority: "HIGH", tags: ["VIP"], nextDays: 2 },
-  { firstName: "Serge", lastName: "Ilunga", jobTitle: "Avocat", email: "silunga@cabinet.cd", phone: "+243 810 300 019", city: "Gombe", status: "contacte", source: "recommandation", owner: "jean", priority: "NORMAL", nextDays: -6 },
-  { firstName: "Thérèse", lastName: "Kalala", jobTitle: "Comptable", email: "tkalala@fiduciaire.cd", phone: "+243 810 300 020", city: "Kintambo", status: "a-contacter", source: "email", owner: "marie", priority: "LOW", nextDays: 3 },
-  { firstName: "Urbain", lastName: "Kabeya", jobTitle: "Transporteur", phone: "+243 810 300 021", whatsapp: "+243 810 300 021", city: "Masina", status: "nouveau", source: "terrain", owner: "jean", priority: "NORMAL", notes: "Pas d’e-mail, uniquement WhatsApp." },
-  { firstName: "Viviane", lastName: "Nkongolo", jobTitle: "Responsable magasin", email: "vnkongolo@supergros.cd", phone: "+243 810 300 022", city: "Limete", status: "qualifie", source: "facebook", owner: "marie", priority: "HIGH", tags: ["B2B"], nextDays: 1 },
-  { firstName: "Willy", lastName: "Tshilombo", jobTitle: "Entrepreneur", email: "wtshilombo@gmail.com", phone: "+243 810 300 023", city: "Bandalungwa", status: "perdu", source: "publicite", owner: "jean", priority: "LOW", notes: "Budget trop juste." },
-  { firstName: "Xénia", lastName: "Lunda", jobTitle: "Chef de cabinet", email: "xlunda@min.gouv.cd", phone: "+243 810 300 024", city: "Gombe", status: "en-attente", source: "recommandation", owner: "marie", priority: "URGENT", tags: ["VIP", "Urgent"], nextDays: 4 },
-  { firstName: "Yves", lastName: "Kadima", jobTitle: "DG", email: "ykadima@miniere.cd", phone: "+243 810 300 025", city: "Lubumbashi", status: "converti", source: "salon", owner: "jean", priority: "HIGH", tags: ["Gros budget"], notes: "Converti en client pilote." },
-  { firstName: "Zola", lastName: "Mavungu", jobTitle: "Fondatrice", email: "zmavungu@mode.cd", phone: "+243 810 300 026", whatsapp: "+243 810 300 026", city: "Ngaliema", status: "contacte", source: "instagram", owner: "marie", priority: "NORMAL", tags: ["À relancer"], nextDays: -1 },
-  { firstName: "André", lastName: "Kapend", jobTitle: "Ingénieur", email: "akapend@mines.cd", phone: "+243 810 300 027", city: "Kolwezi", status: "a-contacter", source: "linkedin", owner: "jean", priority: "HIGH", nextDays: 6 },
-  { firstName: "Blanche", lastName: "Sumbu", jobTitle: "Négociante", email: "bsumbu@commerce.cd", phone: "+243 810 300 028", city: "Matadi", status: "nouveau", source: "whatsapp", owner: "marie", priority: "NORMAL" },
-  { firstName: "Célestin", lastName: "Mbala", jobTitle: "Pasteur / ONG", email: "cmbala@ong.cd", phone: "+243 810 300 029", city: "Kisenso", status: "non-qualifie", source: "autre", owner: "jean", priority: "LOW", notes: "Pas de budget commercial." },
-  { firstName: "Dorcas", lastName: "Kalume", jobTitle: "Directrice clinique", email: "dkalume@sante.cd", phone: "+243 810 300 030", city: "Lemba", status: "reponse", source: "site", owner: "marie", priority: "HIGH", tags: ["Hot Lead"], nextDays: 2 },
+  { firstName: "Alain", lastName: "Tshibanda", jobTitle: "Acheteur", email: "atshibanda@abc-sarl.cd", phone: "+243 810 300 001", city: "Gombe", company: "ABC SARL", status: "pipeline", source: "recommandation", owner: "jean", priority: "HIGH", tags: ["B2B", "Gros budget"], notes: "Intéressé par un CRM pour 40 commerciaux.", nextDays: 2 },
+  { firstName: "Béatrice", lastName: "Lumbala", jobTitle: "Resp. marketing", email: "blumbala@abc-sarl.cd", phone: "+243 810 300 002", whatsapp: "+243 810 300 002", city: "Gombe", company: "ABC SARL", status: "lead", source: "linkedin", owner: "jean", priority: "NORMAL", tags: ["À relancer"], nextDays: -1 },
+  { firstName: "Christian", lastName: "Ngoy", jobTitle: "Consultant", email: "cngoy@xyzconsulting.cd", phone: "+243 810 300 003", city: "Gombe", company: "XYZ Consulting", status: "lead", source: "site", owner: "marie", priority: "HIGH", tags: ["Hot Lead"], nextDays: 0 },
+  { firstName: "Diane", lastName: "Kalonji", jobTitle: "Associée", email: "dkalonji@xyzconsulting.cd", phone: "+243 810 300 004", city: "Gombe", company: "XYZ Consulting", status: "opportunite", source: "salon", owner: "marie", priority: "NORMAL", tags: ["B2B"] },
+  { firstName: "Éric", lastName: "Kabongo", jobTitle: "CTO", email: "ekabongo@digitalcongo.cd", phone: "+243 810 300 005", whatsapp: "+243 810 300 005", city: "Gombe", company: "Digital Congo", status: "pipeline", source: "whatsapp", owner: "jean", priority: "URGENT", tags: ["VIP", "Hot Lead"], notes: "Demo prévue.", nextDays: 1 },
+  { firstName: "Fatou", lastName: "Diallo", jobTitle: "Growth", email: "fdiallo@digitalcongo.cd", phone: "+243 810 300 006", city: "Gombe", company: "Digital Congo", status: "opportunite", source: "facebook", owner: "jean", priority: "NORMAL", nextDays: 3 },
+  { firstName: "Gaël", lastName: "Mputu", jobTitle: "Directeur commercial", email: "gmputu@kbg.cd", phone: "+243 810 300 007", city: "Limete", company: "Kinshasa Business Group", status: "pipeline", source: "terrain", owner: "marie", priority: "HIGH", tags: ["Gros budget"], nextDays: 5 },
+  { firstName: "Hélène", lastName: "Tshienda", jobTitle: "Office manager", email: "htshienda@kbg.cd", phone: "+243 810 300 008", city: "Limete", company: "Kinshasa Business Group", status: "lead", source: "telephone", owner: "marie", priority: "LOW", nextDays: -4 },
+  { firstName: "Isaac", lastName: "Mukendi", jobTitle: "Chef de projet", email: "imukendi@rawbank.cd", phone: "+243 810 300 009", city: "Gombe", company: "Rawbank Corporate", status: "pipeline", source: "email", owner: "jean", priority: "HIGH", tags: ["VIP"], nextDays: 2 },
+  { firstName: "Jeanne", lastName: "Banza", jobTitle: "RH", email: "jbanza@rawbank.cd", phone: "+243 810 300 010", city: "Gombe", company: "Rawbank Corporate", status: "rejete", source: "linkedin", owner: "jean", priority: "LOW" },
+  { firstName: "Kevin", lastName: "Lutumba", jobTitle: "Key account", email: "klutumba@airtel.cd", phone: "+243 810 300 011", whatsapp: "+243 810 300 011", city: "Gombe", company: "Airtel Congo", status: "lead", source: "recommandation", owner: "marie", priority: "NORMAL", tags: ["B2B"], nextDays: 4 },
+  { firstName: "Léa", lastName: "Nsimba", jobTitle: "Commerciale", email: "lnsimba@airtel.cd", phone: "+243 810 300 012", city: "Gombe", company: "Airtel Congo", status: "opportunite", source: "instagram", owner: "marie", priority: "NORMAL" },
+  { firstName: "Marc", lastName: "Kabila", jobTitle: "Gérant", email: "marc.kabila@gmail.com", phone: "+243 810 300 013", city: "Lemba", status: "opportunite", source: "terrain", owner: "jean", priority: "NORMAL", notes: "Boutique de pièces auto, Matadi-Kibala.", nextDays: -2 },
+  { firstName: "Nadia", lastName: "Phiri", jobTitle: "Propriétaire", email: "nphiri@yahoo.fr", phone: "+243 810 300 014", whatsapp: "+243 810 300 014", city: "Ngaliema", status: "lead", source: "whatsapp", owner: "marie", priority: "HIGH", tags: ["À relancer"], nextDays: 0 },
+  { firstName: "Olivier", lastName: "Mbuyi", jobTitle: "Importateur", email: "olivier.mbuyi@outlook.com", phone: "+243 810 300 015", city: "Limete", status: "pipeline", source: "salon", owner: "jean", priority: "URGENT", tags: ["Hot Lead", "Gros budget"], nextDays: 1 },
+  { firstName: "Pauline", lastName: "Kasongo", jobTitle: "Pharmacienne", email: "pkasongo@pharma.cd", phone: "+243 810 300 016", city: "Kalamu", status: "opportunite", source: "site", owner: "marie", priority: "NORMAL" },
+  { firstName: "Quincy", lastName: "Tumba", jobTitle: "Logisticien", email: "qtumba@logirdc.cd", phone: "+243 810 300 017", city: "Ndjili", status: "pipeline", source: "telephone", owner: "jean", priority: "NORMAL", nextDays: 7 },
+  { firstName: "Rachel", lastName: "Mwamba", jobTitle: "Directrice", email: "rmwamba@hotels.cd", phone: "+243 810 300 018", city: "Gombe", status: "lead", source: "linkedin", owner: "marie", priority: "HIGH", tags: ["VIP"], nextDays: 2 },
+  { firstName: "Serge", lastName: "Ilunga", jobTitle: "Avocat", email: "silunga@cabinet.cd", phone: "+243 810 300 019", city: "Gombe", status: "lead", source: "recommandation", owner: "jean", priority: "NORMAL", nextDays: -6 },
+  { firstName: "Thérèse", lastName: "Kalala", jobTitle: "Comptable", email: "tkalala@fiduciaire.cd", phone: "+243 810 300 020", city: "Kintambo", status: "opportunite", source: "email", owner: "marie", priority: "LOW", nextDays: 3 },
+  { firstName: "Urbain", lastName: "Kabeya", jobTitle: "Transporteur", phone: "+243 810 300 021", whatsapp: "+243 810 300 021", city: "Masina", status: "opportunite", source: "terrain", owner: "jean", priority: "NORMAL", notes: "Pas d’e-mail, uniquement WhatsApp." },
+  { firstName: "Viviane", lastName: "Nkongolo", jobTitle: "Responsable magasin", email: "vnkongolo@supergros.cd", phone: "+243 810 300 022", city: "Limete", status: "pipeline", source: "facebook", owner: "marie", priority: "HIGH", tags: ["B2B"], nextDays: 1 },
+  { firstName: "Willy", lastName: "Tshilombo", jobTitle: "Entrepreneur", email: "wtshilombo@gmail.com", phone: "+243 810 300 023", city: "Bandalungwa", status: "rejete", source: "publicite", owner: "jean", priority: "LOW", notes: "Budget trop juste." },
+  { firstName: "Xénia", lastName: "Lunda", jobTitle: "Chef de cabinet", email: "xlunda@min.gouv.cd", phone: "+243 810 300 024", city: "Gombe", status: "pipeline", source: "recommandation", owner: "marie", priority: "URGENT", tags: ["VIP", "Urgent"], nextDays: 4 },
+  { firstName: "Yves", lastName: "Kadima", jobTitle: "DG", email: "ykadima@miniere.cd", phone: "+243 810 300 025", city: "Lubumbashi", status: "finalise", source: "salon", owner: "jean", priority: "HIGH", tags: ["Gros budget"], notes: "Converti en client pilote." },
+  { firstName: "Zola", lastName: "Mavungu", jobTitle: "Fondatrice", email: "zmavungu@mode.cd", phone: "+243 810 300 026", whatsapp: "+243 810 300 026", city: "Ngaliema", status: "lead", source: "instagram", owner: "marie", priority: "NORMAL", tags: ["À relancer"], nextDays: -1 },
+  { firstName: "André", lastName: "Kapend", jobTitle: "Ingénieur", email: "akapend@mines.cd", phone: "+243 810 300 027", city: "Kolwezi", status: "opportunite", source: "linkedin", owner: "jean", priority: "HIGH", nextDays: 6 },
+  { firstName: "Blanche", lastName: "Sumbu", jobTitle: "Négociante", email: "bsumbu@commerce.cd", phone: "+243 810 300 028", city: "Matadi", status: "opportunite", source: "whatsapp", owner: "marie", priority: "NORMAL" },
+  { firstName: "Célestin", lastName: "Mbala", jobTitle: "Pasteur / ONG", email: "cmbala@ong.cd", phone: "+243 810 300 029", city: "Kisenso", status: "rejete", source: "autre", owner: "jean", priority: "LOW", notes: "Pas de budget commercial." },
+  { firstName: "Dorcas", lastName: "Kalume", jobTitle: "Directrice clinique", email: "dkalume@sante.cd", phone: "+243 810 300 030", city: "Lemba", status: "lead", source: "site", owner: "marie", priority: "HIGH", tags: ["Hot Lead"], nextDays: 2 },
 ];
 
 function shiftDays(days: number) {
@@ -135,8 +136,12 @@ function shiftDays(days: number) {
 }
 
 export async function seedDemoCrm(prisma: PrismaClient, organizationId: string) {
-  const jean = await prisma.user.findFirst({ where: { organizationId, email: "jean@demo.cd" } });
-  const marie = await prisma.user.findFirst({ where: { organizationId, email: "marie@demo.cd" } });
+  const jean = await prisma.user.findFirst({
+    where: { organizationId, email: { in: demoStaffLookupEmails("jean") } },
+  });
+  const marie = await prisma.user.findFirst({
+    where: { organizationId, email: { in: demoStaffLookupEmails("marie") } },
+  });
   if (!jean || !marie) {
     throw new Error("Comptes Jean/Marie manquants pour le seed CRM.");
   }
@@ -190,6 +195,8 @@ export async function seedDemoCrm(prisma: PrismaClient, organizationId: string) 
         companyId: companyIds.get(contact.company),
         firstName: contact.firstName,
         lastName: contact.lastName,
+        civility: contact.civility,
+        category: contact.category,
         jobTitle: contact.jobTitle,
         email: contact.email,
         phone: contact.phone,
@@ -231,16 +238,19 @@ export async function seedDemoCrm(prisma: PrismaClient, organizationId: string) 
         country: "RD Congo",
         priority: prospect.priority,
         notes: prospect.notes,
+        statusComment: prospect.notes,
+        lastActionAt: prospect.nextDays !== undefined ? shiftDays(Math.min(prospect.nextDays, 0)) : shiftDays(-1),
+        firstContactAt: ["lead", "pipeline", "finalise"].includes(prospect.status) ? shiftDays(-14) : undefined,
         score: computeLeadScore({
           email: prospect.email,
           phone: prospect.phone,
           companyId,
         }),
         nextContactAt: prospect.nextDays !== undefined ? shiftDays(prospect.nextDays) : undefined,
-        lastContactAt: ["contacte", "reponse", "qualifie", "converti"].includes(prospect.status)
+        lastContactAt: ["lead", "pipeline", "finalise"].includes(prospect.status)
           ? shiftDays(-3)
           : undefined,
-        convertedAt: prospect.status === "converti" ? shiftDays(-10) : undefined,
+        convertedAt: prospect.status === "finalise" ? shiftDays(-10) : undefined,
         tags: prospect.tags?.length
           ? {
               create: prospect.tags
@@ -446,12 +456,12 @@ async function seedDemoTeam(prisma: PrismaClient, organizationId: string) {
     create: { organizationId, name: "Terrain Kinshasa" },
   });
 
-  const byEmail = async (email: string) =>
-    prisma.user.findFirst({ where: { organizationId, email } });
+  const byEmails = async (emails: string[]) =>
+    prisma.user.findFirst({ where: { organizationId, email: { in: emails } } });
 
-  const jean = await byEmail("jean@demo.cd");
-  const marie = await byEmail("marie@demo.cd");
-  const paul = await byEmail("manager@demo.cd");
+  const jean = await byEmails(demoStaffLookupEmails("jean"));
+  const marie = await byEmails(demoStaffLookupEmails("marie"));
+  const paul = await byEmails(demoStaffLookupEmails("direction"));
   if (jean) await prisma.user.update({ where: { id: jean.id }, data: { teamId: gombe.id } });
   if (marie) await prisma.user.update({ where: { id: marie.id }, data: { teamId: terrain.id } });
   if (paul) await prisma.user.update({ where: { id: paul.id }, data: { teamId: gombe.id } });
@@ -533,8 +543,12 @@ async function seedDemoScoresAndAlerts(prisma: PrismaClient, organizationId: str
     return;
   }
 
-  const jean = await prisma.user.findFirst({ where: { organizationId, email: "jean@demo.cd" } });
-  const admin = await prisma.user.findFirst({ where: { organizationId, email: "admin@demo.cd" } });
+  const jean = await prisma.user.findFirst({
+    where: { organizationId, email: { in: demoStaffLookupEmails("jean") } },
+  });
+  const admin = await prisma.user.findFirst({
+    where: { organizationId, email: { in: demoStaffLookupEmails("admin") } },
+  });
   if (!jean || !admin) return;
 
   const hot =

@@ -114,7 +114,7 @@ export async function commitProspectImport(
     }),
   ]);
 
-  const nouveau = statuses.find((item) => item.slug === "nouveau") ?? statuses[0];
+  const nouveau = statuses.find((item) => item.slug === "opportunite") ?? statuses[0];
   if (!nouveau) {
     throw new Error("Aucun statut configuré.");
   }

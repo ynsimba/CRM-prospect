@@ -24,7 +24,7 @@ export default async function NewContactPage() {
       </div>
 
       <div className="row g-3">
-        <div className="col-12 col-xl-6">
+        <div className="col-12 col-lg-10 col-xl-8">
           <article className="dash-card">
             <ContactForm companies={options.companies} />
           </article>

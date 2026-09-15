@@ -3,6 +3,7 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@prisma/client";
+import { getSessionSecret } from "@/lib/env";
 
 const COOKIE_NAME = "session";
 const EXPIRY_DAYS = 7;
@@ -15,7 +16,7 @@ export type SessionPayload = {
 };
 
 function getSecret() {
-  const secret = process.env.SESSION_SECRET;
+  const secret = getSessionSecret();
   if (!secret || secret.length < 16) {
     throw new Error("SESSION_SECRET manquant ou trop court");
   }

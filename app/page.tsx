@@ -2,8 +2,10 @@ import Dashboard from "@/components/Dashboard";
 import { requireSession } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/dashboard";
 import { prisma } from "@/lib/prisma";
-import { PROFILE_ROLE_LABELS } from "@/lib/roles";
+import { homePathForRole } from "@/lib/roles";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 function initialsFromName(name: string) {
   return name
@@ -16,8 +18,8 @@ function initialsFromName(name: string) {
 
 export default async function Home() {
   const session = await requireSession();
-  if (session.role === "SUPER_ADMIN") {
-    redirect("/admin");
+  if (session.role === "SUPER_ADMIN" || session.role === "MANAGER") {
+    redirect(homePathForRole(session.role));
   }
 
   const user = await prisma.user.findFirst({
@@ -30,7 +32,7 @@ export default async function Home() {
     <Dashboard
       userName={user?.name ?? session.name}
       userInitials={initialsFromName(user?.name ?? session.name) || "PC"}
-      roleLabel={PROFILE_ROLE_LABELS[session.role]}
+      civility={user?.civility}
       stats={stats}
     />
   );

@@ -25,8 +25,8 @@ export const CONTACT_ACTIVITY_TYPES: ActivityType[] = [
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   TODO: "À faire",
   IN_PROGRESS: "En cours",
-  DONE: "Terminée",
-  CANCELLED: "Annulée",
+  DONE: "Fait",
+  CANCELLED: "Clôturé incomplet",
 };
 
 export function taskStatusPill(status: TaskStatus) {

@@ -1,7 +1,6 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
-import CountUp from "./CountUp";
-import type { DashboardKpi } from "@/lib/dashboard";
+import MetricGrid from "./MetricGrid";
+import type { DashboardKpi } from "@/lib/dashboard-logic";
 
 type DataCompanyCardProps = {
   title: string;
@@ -33,22 +32,7 @@ export default function DataCompanyCard({
         ) : null}
       </div>
 
-      <div className="metric-grid">
-        {metrics.map((metric, index) => (
-          <Link
-            key={metric.label}
-            href={metric.href}
-            className={`metric-box ${metric.tone}`}
-            style={{ "--i": index } as CSSProperties}
-          >
-            <span className="metric-label">{metric.label}</span>
-            {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
-            <span className="metric-value">
-              <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
-            </span>
-          </Link>
-        ))}
-      </div>
+      <MetricGrid metrics={metrics} />
     </article>
   );
 }

@@ -14,7 +14,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
-    "test": "tsx --test lib/money.test.ts lib/permissions.test.ts lib/crm.test.ts lib/pipeline-logic.test.ts lib/activity-logic.test.ts lib/goal-logic.test.ts lib/notify-logic.test.ts lib/csv.test.ts lib/import-logic.test.ts lib/report-logic.test.ts lib/nav.test.ts lib/dashboard-logic.test.ts lib/prospect-list-logic.test.ts lib/db-error.test.ts"
+    "test": "tsx --test lib/money.test.ts lib/permissions.test.ts lib/crm.test.ts lib/pipeline-logic.test.ts lib/activity-logic.test.ts lib/goal-logic.test.ts lib/notify-logic.test.ts lib/csv.test.ts lib/import-logic.test.ts lib/report-logic.test.ts lib/nav.test.ts lib/dashboard-logic.test.ts lib/prospect-list-logic.test.ts lib/db-error.test.ts lib/safecheck.test.ts lib/roles.test.ts lib/staff-email.test.ts lib/suivi-logic.test.ts lib/theme.test.ts lib/calendar-logic.test.ts lib/notes-logic.test.ts lib/task-follow-logic.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

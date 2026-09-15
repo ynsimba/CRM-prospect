@@ -4,19 +4,26 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Role } from "@prisma/client";
 import Link from "next/link";
 import Sidebar from "./Sidebar";
+import {
+  applyThemeClass,
+  resolveTheme,
+  THEME_STORAGE_KEY,
+  type ThemeName,
+} from "@/lib/theme";
 
 const MOBILE_QUERY = "(max-width: 991.98px)";
 
 type AppShellProps = {
   activeHref: string;
   role?: Role;
+  userName?: string;
   unreadCount?: number;
   children: ReactNode;
 };
 
-export default function AppShell({ activeHref, role, unreadCount = 0, children }: AppShellProps) {
+export default function AppShell({ activeHref, role, userName, unreadCount = 0, children }: AppShellProps) {
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [lightMode, setLightMode] = useState(true);
+  const [theme, setTheme] = useState<ThemeName>("light");
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_QUERY);
@@ -34,8 +41,38 @@ export default function AppShell({ activeHref, role, unreadCount = 0, children }
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolved = resolveTheme(stored, prefersDark);
+    setTheme(resolved);
+    applyThemeClass(resolved, document.documentElement);
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onScheme = () => {
+      const current = window.localStorage.getItem(THEME_STORAGE_KEY);
+      if (current === "dark" || current === "light") return;
+      const next = media.matches ? "dark" : "light";
+      setTheme(next);
+      applyThemeClass(next, document.documentElement);
+    };
+    media.addEventListener("change", onScheme);
+    return () => media.removeEventListener("change", onScheme);
+  }, []);
+
+  function toggleTheme() {
+    const next: ThemeName = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    applyThemeClass(next, document.documentElement);
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // Quota / mode privé : le thème reste appliqué pour cette session.
+    }
+  }
+
   return (
-    <div className={`dashboard-page ${lightMode ? "" : "theme-dim"}`}>
+    <div className={`dashboard-page ${theme === "dark" ? "theme-dim" : ""}`}>
       {sidebarVisible && (
         <button
           type="button"
@@ -50,9 +87,10 @@ export default function AppShell({ activeHref, role, unreadCount = 0, children }
           open={sidebarVisible}
           activeHref={activeHref}
           role={role}
+          userName={userName}
           unreadCount={unreadCount}
-          lightMode={lightMode}
-          onToggleLight={() => setLightMode((value) => !value)}
+          darkMode={theme === "dark"}
+          onToggleTheme={toggleTheme}
           onHide={() => setSidebarVisible(false)}
           onNavigate={() => {
             if (window.matchMedia(MOBILE_QUERY).matches) {

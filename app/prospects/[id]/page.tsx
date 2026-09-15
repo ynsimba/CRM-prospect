@@ -82,6 +82,10 @@ export default async function ProspectDetailPage({
               <table className="data-table">
                 <tbody>
                   <tr>
+                    <td>Code</td>
+                    <td>{prospect.displayCode ?? "—"}</td>
+                  </tr>
+                  <tr>
                     <td>Statut</td>
                     <td>
                       <span className={`status-pill ${statusPillClass(prospect.status.slug, prospect.status.isConverted, prospect.status.isLost)}`}>
@@ -191,6 +195,10 @@ export default async function ProspectDetailPage({
                     </td>
                   </tr>
                   <tr>
+                    <td>Commentaire statut</td>
+                    <td>{prospect.statusComment ?? "—"}</td>
+                  </tr>
+                  <tr>
                     <td>Notes</td>
                     <td>{prospect.notes ?? "—"}</td>
                   </tr>
@@ -214,6 +222,10 @@ export default async function ProspectDetailPage({
                       </option>
                     ))}
                   </select>
+                </label>
+                <label className="login-field">
+                  Commentaire statut
+                  <textarea name="statusComment" rows={2} defaultValue={prospect.statusComment ?? ""} />
                 </label>
                 <button type="submit" className="btn-download">
                   Enregistrer
@@ -276,6 +288,32 @@ export default async function ProspectDetailPage({
               />
             </article>
           ) : null}
+          <article className="dash-card" style={{ marginBottom: 16 }}>
+            <h3>Historique des statuts</h3>
+            {prospect.statusHistory.length === 0 ? (
+              <p className="empty-copy">Aucun changement enregistré.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <tbody>
+                    {prospect.statusHistory.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.displayCode ?? "—"}</td>
+                        <td>
+                          <strong>{item.statusName}</strong>
+                          <div className="muted-line">
+                            {item.occurredAt.toLocaleString("fr-CD", { dateStyle: "short", timeStyle: "short" })}
+                            {item.actor?.name ? ` · ${item.actor.name}` : ""}
+                          </div>
+                        </td>
+                        <td>{item.comment ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </article>
           <article className="dash-card" style={{ marginBottom: 16 }}>
             <h3>Activités</h3>
             <ActivityTimeline activities={prospect.activities} />

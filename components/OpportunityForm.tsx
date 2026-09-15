@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import DateField from "@/components/DateField";
 import { createOpportunityAction, type OpportunityFormState } from "@/app/actions/pipeline";
 import { fullName } from "@/lib/crm";
 
@@ -80,7 +81,7 @@ export default function OpportunityForm({
       </label>
       <label className="login-field">
         Clôture prévue
-        <input name="expectedCloseAt" type="date" />
+        <DateField name="expectedCloseAt" />
       </label>
       <label className="login-field">
         Notes

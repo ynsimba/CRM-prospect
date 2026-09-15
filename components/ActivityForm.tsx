@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createActivityAction, type ActivityFormState } from "@/app/actions/activities";
+import DateField from "@/components/DateField";
 import { ACTIVITY_LABELS } from "@/lib/activity-logic";
 
 const initialState: ActivityFormState = {};
@@ -51,7 +52,7 @@ export default function ActivityForm({
       {showNextContact ? (
         <label className="login-field">
           Prochaine relance
-          <input name="nextContactAt" type="datetime-local" />
+          <DateField name="nextContactAt" includeTime />
         </label>
       ) : null}
       {state.error ? <p className="login-error">{state.error}</p> : null}

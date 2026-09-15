@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAudit } from "@/lib/audit";
 import { createSession, deleteSession } from "@/lib/session";
 import { loginFailureMessage } from "@/lib/db-error";
+import { homePathForRole } from "@/lib/roles";
 
 export type LoginState = {
   error?: string;
@@ -60,7 +61,7 @@ export async function loginAction(
       role: user.role,
       name: user.name,
     });
-    nextPath = user.role === "SUPER_ADMIN" ? "/admin" : "/";
+    nextPath = homePathForRole(user.role);
   } catch (error) {
     console.error(error);
     return { error: loginFailureMessage(error) };

@@ -58,36 +58,53 @@ function CircularProgress({ percent, color, size = 86 }: CircularProgressProps) 
 }
 
 type DataGraphicCardProps = {
-  percent: number;
+  pipelinePercent: number;
+  winPercent: number;
   goal: number;
 };
 
-export default function DataGraphicCard({ percent, goal }: DataGraphicCardProps) {
-  const onTrack = percent >= goal;
+export default function DataGraphicCard({ pipelinePercent, winPercent, goal }: DataGraphicCardProps) {
+  const onTrack = pipelinePercent >= goal;
+  const winning = winPercent >= 50;
 
   return (
     <article className="dash-card">
       <div className="donut-head">
         <div>
           <h3>Rapports mensuels</h3>
-          <p className="card-sub">Pourcentage de prospects passés au pipeline / objectif {goal}%</p>
+          <p className="card-sub">
+            Prospects passés au pipeline et affaires gagnées ce mois · objectif {goal}%
+          </p>
         </div>
         <Link href="/rapports" className="icon-btn" aria-label="Ouvrir les rapports">
           <i className="bi bi-box-arrow-up-right" />
         </Link>
       </div>
 
-      <div className="progress-row single">
+      <div className="progress-row">
         <div className="progress-block">
-          <CircularProgress percent={percent} color={onTrack ? "#8dc438" : "#fcb040"} />
+          <CircularProgress percent={pipelinePercent} color={onTrack ? "#8dc438" : "#fcb040"} />
           <div className="progress-copy">
             <p>% Pipeline ce mois</p>
             <span className="amount">
-              <CountUp end={percent} duration={1500} suffix="%" />
+              <CountUp end={pipelinePercent} duration={1500} suffix="%" />
             </span>
             <span className={onTrack ? "badge-up" : "badge-tax"}>
               <i className={`bi ${onTrack ? "bi-caret-up-fill" : "bi-percent"}`} aria-hidden />
               Objectif {goal}%
+            </span>
+          </div>
+        </div>
+        <div className="progress-block">
+          <CircularProgress percent={winPercent} color={winning ? "#07a8a3" : "#2f3990"} />
+          <div className="progress-copy">
+            <p>Taux de réussite ce mois</p>
+            <span className="amount">
+              <CountUp end={winPercent} duration={1500} suffix="%" />
+            </span>
+            <span className={winning ? "badge-up" : "badge-tax"}>
+              <i className={`bi ${winning ? "bi-caret-up-fill" : "bi-dash"}`} aria-hidden />
+              Affaires clôturées
             </span>
           </div>
         </div>
