@@ -24,7 +24,7 @@ import {
   SAFECHECK_STATUSES,
 } from "@/lib/safecheck";
 import { formatShortDate, toDateInput } from "@/lib/prospect-list-logic";
-import type { Prisma } from "@prisma/client";
+import { isSalesRole } from "@/lib/roles";
 import {
   buildAnalyticsSeries,
   conversionPercent,
@@ -56,18 +56,18 @@ export type DashboardStats = {
 };
 
 function ownedBy(session: SessionPayload) {
-  return session.role === "SALES" ? { ownerId: session.userId } : {};
+  return isSalesRole(session.role) ? { ownerId: session.userId } : {};
 }
 
 function activityBy(session: SessionPayload) {
-  return session.role === "SALES" ? { userId: session.userId } : {};
+  return isSalesRole(session.role) ? { userId: session.userId } : {};
 }
 
-function visibleProspectsWhere(session: SessionPayload, now: Date): Prisma.ProspectWhereInput {
+function visibleProspectsWhere(session: SessionPayload, now: Date) {
   return { ...orgScope(session), ...ownedBy(session), ...notArchivedWhere(now) };
 }
 
-function dashboardKpiWhere(session: SessionPayload, kpiId: string, now = new Date()): Prisma.ProspectWhereInput | null {
+function dashboardKpiWhere(session: SessionPayload, kpiId: string, now = new Date()) {
   const parsed = parseDashboardKpiId(kpiId);
   if (!parsed) return null;
   if (parsed.type === "mine") {
@@ -208,7 +208,7 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
     }),
     prisma.prospect.count({
       where:
-        session.role === "SALES"
+        isSalesRole(session.role)
           ? { ...orgScope(session), ownerId: session.userId, ...notArchivedWhere(now) }
           : visible,
     }),
@@ -239,7 +239,7 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
   const ownerName = new Map(owners.map((item) => [item.id, item.name]));
 
   const byCommercial =
-    session.role === "SALES"
+    isSalesRole(session.role)
       ? statusBars
       : ownerRows.map((row) => ({
           label: row.ownerId ? (ownerName.get(row.ownerId) ?? "Non assigné") : "Non assigné",
@@ -259,7 +259,7 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
   const finalized = ordered.find((item) => item.slug === "finalise");
   const pipeline = ordered.find((item) => item.slug === "pipeline");
   const closed = closedDeals.map((item) => ({ date: item.updatedAt, won: item.status === "WON" }));
-  const isSales = session.role === "SALES";
+  const isSales = isSalesRole(session.role);
   const prospectsHref = isSales ? "/prospects" : "/direction/prospects";
 
   const tones: DashboardKpi["tone"][] = ["blue", "red", "green"];

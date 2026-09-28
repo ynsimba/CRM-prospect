@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, type PipelineStageRow } from "@/lib/prisma";
 import { orgScope, ownedScope } from "@/lib/auth";
 import { opportunityStatusFromStage, weightedAmount } from "@/lib/pipeline-logic";
 import { notify } from "@/lib/notifications";
@@ -35,7 +35,7 @@ export async function getPipelineBoard(session: SessionPayload, ownerId?: string
     orderBy: { updatedAt: "desc" },
   });
 
-  const columns = pipeline.stages.map((stage) => {
+  const columns = pipeline.stages.map((stage: PipelineStageRow) => {
     const items = opportunities.filter((item) => item.stageId === stage.id);
     const total = items.reduce((sum, item) => sum + item.amount, 0);
     const weighted = items.reduce((sum, item) => sum + weightedAmount(item.amount, item.probability), 0);
@@ -107,7 +107,7 @@ export async function getPipelineOptions(session: SessionPayload) {
 
 async function assertStage(session: SessionPayload, stageId: string) {
   const pipeline = await getDefaultPipeline(session);
-  const stage = pipeline?.stages.find((item) => item.id === stageId);
+  const stage = pipeline?.stages.find((item: PipelineStageRow) => item.id === stageId);
   if (!pipeline || !stage) {
     throw new Error("Étape de pipeline introuvable.");
   }
@@ -247,9 +247,9 @@ export async function convertProspectToOpportunity(
     }
 
     const stage =
-      pipeline.stages.find((item) => item.id === input.stageId) ??
-      pipeline.stages.find((item) => item.name === "Qualifié") ??
-      pipeline.stages.find((item) => !item.isWon && !item.isLost);
+      pipeline.stages.find((item: PipelineStageRow) => item.id === input.stageId) ??
+      pipeline.stages.find((item: PipelineStageRow) => item.name === "Qualifié") ??
+      pipeline.stages.find((item: PipelineStageRow) => !item.isWon && !item.isLost);
 
     if (!stage) {
       throw new Error("Aucune étape ouverte dans le pipeline.");

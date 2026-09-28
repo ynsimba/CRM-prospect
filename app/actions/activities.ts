@@ -1,6 +1,6 @@
 "use server";
 
-import { ActivityType, ProspectPriority, TaskStatus } from "@prisma/client";
+import { ActivityType, ProspectPriority, TaskStatus, TaskType } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 import { requireDirector, requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
@@ -15,6 +15,12 @@ export type ActivityFormState = {
 };
 
 const ACTIVITY_TYPES = new Set<string>(Object.values(ActivityType));
+const TASK_TYPES = new Set<string>(Object.values(TaskType));
+
+function readTaskType(value: FormDataEntryValue | null): TaskType {
+  const raw = String(value ?? "TASK");
+  return TASK_TYPES.has(raw) ? (raw as TaskType) : TaskType.TASK;
+}
 
 function readActivityType(value: FormDataEntryValue | null): ActivityType {
   const raw = String(value ?? "NOTE");
@@ -103,6 +109,7 @@ export async function createTaskAction(
   try {
     const task = await createTask(session, {
       title: String(formData.get("title") ?? ""),
+      type: readTaskType(formData.get("type")),
       description: emptyToNull(formData.get("description")) ?? undefined,
       directorNote: emptyToNull(formData.get("directorNote")) ?? undefined,
       ownerNote: emptyToNull(formData.get("ownerNote")) ?? undefined,

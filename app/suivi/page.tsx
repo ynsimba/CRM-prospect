@@ -8,6 +8,7 @@ import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { parseProspectListView, prismaProspectSort } from "@/lib/prospect-list-logic";
 import { listProspects } from "@/lib/prospects";
 import { buildSuiviColumns, isSuiviStatusSlug, SUIVI_BOARD_COLUMNS } from "@/lib/suivi-logic";
+import { isSalesRole } from "@/lib/roles";
 
 export default async function FollowUpPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function FollowUpPage({
 }) {
   const session = await requirePermission(PERMISSIONS.prospectsRead);
   const canManage = roleHasPermission(session.role, PERMISSIONS.prospectsManage);
-  const isSales = session.role === "SALES";
+  const isSales = isSalesRole(session.role);
   const params = await searchParams;
   const filters = parseProspectFilters(params);
   const view = parseProspectListView(params);

@@ -4,6 +4,7 @@ import ContactForm from "@/components/ContactForm";
 import { requirePermission } from "@/lib/auth";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS } from "@/lib/permissions";
+import { isSalesRole } from "@/lib/roles";
 
 export default async function NewContactPage() {
   const session = await requirePermission(PERMISSIONS.companiesManage);
@@ -16,7 +17,7 @@ export default async function NewContactPage() {
           <h1 className="page-title">Ajouter contact</h1>
           <p className="card-sub">Nouvel interlocuteur, rattaché ou non à une entreprise.</p>
         </div>
-        {session.role === "SALES" ? null : (
+        {isSalesRole(session.role) ? null : (
           <Link href="/contacts" className="table-action">
             Tous les contacts
           </Link>

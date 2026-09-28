@@ -3,7 +3,7 @@ import Shell from "@/components/Shell";
 import ContactForm from "@/components/ContactForm";
 import { requirePermission } from "@/lib/auth";
 import { listContacts } from "@/lib/contacts";
-import { fullName, personCategoryLabel, whatsappHref } from "@/lib/crm";
+import { personCategoryLabel, whatsappHref } from "@/lib/crm";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 

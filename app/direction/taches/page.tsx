@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus } from "@/lib/enums";
 import Shell from "@/components/Shell";
 import TaskTable from "@/components/TaskTable";
 import LiveRefresh from "@/components/LiveRefresh";

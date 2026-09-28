@@ -1,4 +1,4 @@
-import { OpportunityStatus } from "@prisma/client";
+import { OpportunityStatus } from "@/lib/enums";
 
 export function opportunityStatusFromStage(stage: { isWon: boolean; isLost: boolean }): OpportunityStatus {
   if (stage.isWon) return OpportunityStatus.WON;

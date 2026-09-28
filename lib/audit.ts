@@ -2,7 +2,6 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/session";
-import { Prisma } from "@prisma/client";
 
 type AuditInput = {
   organizationId: string;
@@ -11,8 +10,8 @@ type AuditInput = {
   entity: string;
   entityId?: string | null;
   summary: string;
-  before?: Prisma.InputJsonValue;
-  after?: Prisma.InputJsonValue;
+  before?: unknown;
+  after?: unknown;
 };
 
 export async function writeAudit(input: AuditInput) {

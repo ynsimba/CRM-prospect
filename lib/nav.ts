@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
 import { PERMISSIONS, roleHasPermission, type PermissionCode } from "@/lib/permissions";
 import { isAdminRole, isDirectionRole, isSalesRole } from "@/lib/roles";
 
@@ -46,6 +46,7 @@ export const COMMERCIAL_NAV = SALES_NAV;
 export const DIRECTION_NAV: NavItem[] = [
   { href: "/direction", icon: "bi-speedometer2", label: "Tableau de bord" },
   { href: "/direction/prospects", icon: "bi-people", label: "Tous les Prospect" },
+  { href: "/direction/agents/liste", icon: "bi-person-vcard", label: "Agents commerciaux" },
   { href: "/direction/assignation", icon: "bi-person-check", label: "Assignation Tâches" },
   { href: "/direction/taches", icon: "bi-list-check", label: "Suivie des tâches" },
   { href: "/direction/taches/departement", icon: "bi-diagram-3", label: "Tâches par département" },
@@ -89,10 +90,18 @@ export function extraMainNav(role?: Role) {
   );
 }
 
+/** Team leads manage their own team from the « Agents commerciaux » cockpit. */
+export const TEAM_LEAD_MODULE: NavItem = {
+  href: "/direction/agents/liste",
+  icon: "bi-people-fill",
+  label: "Mon équipe commerciale",
+};
+
 export function visibleSidebarModules(role?: Role) {
   if (isDirectionRole(role) && !isAdminRole(role) && !isSalesRole(role)) {
     return SIDEBAR_MODULES.filter((item) => item.href === "/notifications");
   }
+  if (role === "TEAM_LEAD") return [TEAM_LEAD_MODULE, ...SIDEBAR_MODULES];
   return SIDEBAR_MODULES;
 }
 

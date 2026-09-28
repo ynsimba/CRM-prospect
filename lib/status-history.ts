@@ -6,6 +6,7 @@ import { notify } from "@/lib/notifications";
 import { fullName } from "@/lib/crm";
 import { historySummary } from "@/lib/safecheck";
 import type { SessionPayload } from "@/lib/session";
+import { isSalesRole } from "@/lib/roles";
 
 export async function recordStatusHistory(input: {
   organizationId: string;
@@ -35,7 +36,7 @@ export async function listStatusHistory(session: SessionPayload, query?: string)
   const rows = await prisma.prospectStatusHistory.findMany({
     where: {
       ...orgScope(session),
-      ...(session.role === "SALES" ? { prospect: ownedScope(session) } : {}),
+      ...(isSalesRole(session.role) ? { prospect: ownedScope(session) } : {}),
       ...(q
         ? {
             OR: [

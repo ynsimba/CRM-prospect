@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
 import Link from "next/link";
 import Sidebar from "./Sidebar";
 import {
@@ -28,6 +28,8 @@ export default function AppShell({ activeHref, role, userName, unreadCount = 0, 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_QUERY);
     if (media.matches) {
+      // Post-hydration sync from matchMedia: reading it during render would mismatch the SSR HTML.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSidebarVisible(false);
     }
 
@@ -45,6 +47,8 @@ export default function AppShell({ activeHref, role, userName, unreadCount = 0, 
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const resolved = resolveTheme(stored, prefersDark);
+    // Same as above: localStorage is only readable after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(resolved);
     applyThemeClass(resolved, document.documentElement);
 

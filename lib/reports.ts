@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, type PipelineStageRow } from "@/lib/prisma";
 import { orgScope } from "@/lib/auth";
 import { weightedAmount } from "@/lib/pipeline-logic";
 import {
@@ -57,7 +57,7 @@ export async function getReports(session: SessionPayload, year: number, monthInd
     lastContactAt: item.lastContactAt,
     sourceName: item.source?.name ?? null,
     opportunityCount: item.opportunities.length,
-    wonOpportunity: item.opportunities.some((opp) => opp.status === "WON"),
+    wonOpportunity: item.opportunities.some((opp: { status: string }) => opp.status === "WON"),
   }));
 
   const contacted = prospects.filter((item) => item.lastContactAt).length;
@@ -86,7 +86,7 @@ export async function getReports(session: SessionPayload, year: number, monthInd
   }));
 
   const byStage =
-    stages?.stages.map((stage) => {
+    stages?.stages.map((stage: PipelineStageRow) => {
       const items = openDeals.filter((deal) => deal.stageId === stage.id);
       const total = items.reduce((sum, item) => sum + item.amount, 0);
       return {

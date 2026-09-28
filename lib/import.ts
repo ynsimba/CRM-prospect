@@ -16,6 +16,7 @@ import {
   type ClassifiedImportRow,
 } from "@/lib/import-logic";
 import type { SessionPayload } from "@/lib/session";
+import { autoAssignNewProspect, recordOwnerChange } from "@/lib/agents";
 
 export const MAX_IMPORT_ROWS = 500;
 export const MAX_IMPORT_BYTES = 1_500_000;
@@ -161,7 +162,7 @@ export async function commitProspectImport(
             )
           : undefined) ?? undefined;
 
-      await prisma.prospect.create({
+      const prospect = await prisma.prospect.create({
         data: {
           organizationId: session.organizationId,
           firstName: row.firstName,
@@ -183,6 +184,12 @@ export async function commitProspectImport(
           }).score,
         },
       });
+      // No owner column: let the distribution rule pick an agent (keeps the importer as owner in manual mode).
+      if (!owner) {
+        await autoAssignNewProspect(session, prospect);
+      } else if (owner.id !== session.userId) {
+        await recordOwnerChange(session, prospect.id, null, owner.id);
+      }
       created += 1;
     } catch (error) {
       failures.push(

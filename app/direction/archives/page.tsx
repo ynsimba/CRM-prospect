@@ -51,7 +51,7 @@ export default async function DirectorArchivedProspectsPage() {
                     <td>{prospect.owner?.name ?? "—"}</td>
                     <td>
                       <span className={`status-pill ${priorityPillClass(prospect.priority)}`}>
-                        {PRIORITY_LABELS[prospect.priority]}
+                        {PRIORITY_LABELS[prospect.priority as keyof typeof PRIORITY_LABELS]}
                       </span>
                     </td>
                   </tr>

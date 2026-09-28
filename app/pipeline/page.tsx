@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { formatFc } from "@/lib/money";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getPipelineBoard, getPipelineOptions } from "@/lib/pipeline";
+import type { Row } from "@/lib/prisma";
 
 export default async function PipelinePage({
   searchParams,
@@ -19,7 +20,7 @@ export default async function PipelinePage({
     getPipelineOptions(session),
   ]);
 
-  const columns: KanbanColumn[] = (board?.columns ?? []).map((column) => ({
+  const columns: KanbanColumn[] = (board?.columns ?? []).map((column: Row) => ({
     id: column.id,
     name: column.name,
     probability: column.probability,
@@ -27,7 +28,7 @@ export default async function PipelinePage({
     isLost: column.isLost,
     total: column.total,
     weighted: column.weighted,
-    opportunities: column.opportunities.map((item) => ({
+    opportunities: column.opportunities.map((item: Row) => ({
       id: item.id,
       name: item.name,
       amount: item.amount,

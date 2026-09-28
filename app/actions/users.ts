@@ -1,6 +1,6 @@
 "use server";
 
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";

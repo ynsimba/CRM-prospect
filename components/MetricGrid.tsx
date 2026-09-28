@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import CountUp from "./CountUp";
@@ -8,6 +8,8 @@ import { getDashboardKpiDetailsAction } from "@/app/actions/dashboard";
 import { DASHBOARD_KPI_DETAIL_LIMIT, dashboardKpiHeading, isCommentableDashboardKpi } from "@/lib/dashboard-logic";
 import type { DashboardKpi, DashboardKpiDetailRow } from "@/lib/dashboard-logic";
 import RelanceKpiTable from "./RelanceKpiTable";
+
+const noopSubscribe = () => () => {};
 
 type MetricGridProps = {
   metrics: DashboardKpi[];
@@ -17,14 +19,30 @@ export default function MetricGrid({ metrics }: MetricGridProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const requestId = useRef(0);
-  const [mounted, setMounted] = useState(false);
+  // true on the client only, so the portal never renders during SSR.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [open, setOpen] = useState<DashboardKpi | null>(null);
   const [items, setItems] = useState<DashboardKpiDetailRow[]>([]);
   const [truncated, setTruncated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const close = () => setOpen(null);
+  const close = () => {
+    requestId.current += 1;
+    setOpen(null);
+    setItems([]);
+    setTruncated(false);
+    setError("");
+    setLoading(false);
+  };
+
+  function openMetric(metric: DashboardKpi) {
+    setOpen(metric);
+    setItems([]);
+    setTruncated(false);
+    setError("");
+    setLoading(true);
+  }
 
   async function reloadDetails(kpiId: string) {
     const result = await getDashboardKpiDetailsAction(kpiId);
@@ -33,21 +51,9 @@ export default function MetricGrid({ metrics }: MetricGridProps) {
   }
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open?.id) {
-      setItems([]);
-      setTruncated(false);
-      setError("");
-      setLoading(false);
-      return;
-    }
+    if (!open?.id) return;
 
     const current = ++requestId.current;
-    setLoading(true);
-    setError("");
     void getDashboardKpiDetailsAction(open.id)
       .then((result) => {
         if (current !== requestId.current) return;
@@ -93,7 +99,7 @@ export default function MetricGrid({ metrics }: MetricGridProps) {
               style={{ "--i": index } as CSSProperties}
               aria-haspopup="dialog"
               aria-expanded={open?.id === metric.id}
-              onClick={() => setOpen(metric)}
+              onClick={() => openMetric(metric)}
             >
               <span className="metric-label">{metric.label}</span>
               {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}

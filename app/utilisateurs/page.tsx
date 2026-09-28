@@ -56,7 +56,7 @@ export default async function UsersPage() {
                           <div className="muted-line">{user.email}</div>
                           {user.phone ? <div className="muted-line">{user.phone}</div> : null}
                         </td>
-                        <td>{ROLE_LABELS[user.role]}</td>
+                        <td>{ROLE_LABELS[user.role as keyof typeof ROLE_LABELS]}</td>
                         <td>{user.team?.name ?? "—"}</td>
                         <td>{formatLastLogin(user.lastLoginAt)}</td>
                         <td>

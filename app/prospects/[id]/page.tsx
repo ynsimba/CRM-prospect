@@ -22,6 +22,7 @@ import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getDefaultPipeline } from "@/lib/pipeline";
 import { getProspect } from "@/lib/prospects";
+import type { Row } from "@/lib/prisma";
 
 export default async function ProspectDetailPage({
   params,
@@ -42,7 +43,7 @@ export default async function ProspectDetailPage({
   const canManage = roleHasPermission(session.role, PERMISSIONS.prospectsManage);
   const canConvert = roleHasPermission(session.role, PERMISSIONS.pipelineManage);
   const canActivities = roleHasPermission(session.role, PERMISSIONS.activitiesManage);
-  const hasOpenOpportunity = prospect.opportunities.some((item) => item.status === "OPEN");
+  const hasOpenOpportunity = prospect.opportunities.some((item: Row) => item.status === "OPEN");
   const pipelineStages = pipeline?.stages ?? [];
   const wa = prospect.whatsapp ? whatsappHref(prospect.whatsapp) : null;
   const scoreDetail = computeProspectScore({
@@ -52,9 +53,9 @@ export default async function ProspectDetailPage({
     companyId: prospect.companyId,
     jobTitle: prospect.jobTitle,
     priority: prospect.priority,
-    tags: prospect.tags.map((item) => item.tag.name),
+    tags: prospect.tags.map((item: Row) => item.tag.name),
     statusSlug: prospect.status.slug,
-    activityTypes: prospect.activities.map((item) => item.type),
+    activityTypes: prospect.activities.map((item: Row) => item.type),
     lastContactAt: prospect.lastContactAt,
     nextContactAt: prospect.nextContactAt,
   });
@@ -97,7 +98,7 @@ export default async function ProspectDetailPage({
                     <td>Priorité</td>
                     <td>
                       <span className={`status-pill ${priorityPillClass(prospect.priority)}`}>
-                        {PRIORITY_LABELS[prospect.priority]}
+                        {PRIORITY_LABELS[prospect.priority as keyof typeof PRIORITY_LABELS]}
                       </span>
                     </td>
                   </tr>
@@ -179,7 +180,7 @@ export default async function ProspectDetailPage({
                     <td>Tags</td>
                     <td>
                       {prospect.tags.length
-                        ? prospect.tags.map((item) => item.tag.name).join(", ")
+                        ? prospect.tags.map((item: Row) => item.tag.name).join(", ")
                         : "—"}
                     </td>
                   </tr>
@@ -253,7 +254,7 @@ export default async function ProspectDetailPage({
                 <div className="table-wrap" style={{ marginTop: 12 }}>
                   <table className="data-table">
                     <tbody>
-                      {prospect.opportunities.map((item) => (
+                      {prospect.opportunities.map((item: Row) => (
                         <tr key={item.id}>
                           <td>
                             <Link href={`/pipeline/${item.id}`}>{item.name}</Link>
@@ -296,7 +297,7 @@ export default async function ProspectDetailPage({
               <div className="table-wrap">
                 <table className="data-table">
                   <tbody>
-                    {prospect.statusHistory.map((item) => (
+                    {prospect.statusHistory.map((item: Row) => (
                       <tr key={item.id}>
                         <td>{item.displayCode ?? "—"}</td>
                         <td>
@@ -326,7 +327,7 @@ export default async function ProspectDetailPage({
               <div className="table-wrap">
                 <table className="data-table">
                   <tbody>
-                    {prospect.tasks.map((task) => (
+                    {prospect.tasks.map((task: Row) => (
                       <tr key={task.id}>
                         <td>
                           <strong>{task.title}</strong>
@@ -344,7 +345,7 @@ export default async function ProspectDetailPage({
                               </button>
                             </form>
                           ) : (
-                            TASK_STATUS_LABELS[task.status]
+                            TASK_STATUS_LABELS[task.status as keyof typeof TASK_STATUS_LABELS]
                           )}
                         </td>
                       </tr>

@@ -1,4 +1,6 @@
 import { needsRelance } from "@/lib/safecheck";
+import { isSalesRole } from "@/lib/roles";
+import type { Role } from "@/lib/enums";
 
 export const PROSPECT_GROUPS = [
   { value: "", label: "Aucun" },
@@ -96,7 +98,7 @@ export function resolveProspectOwnerScope(
   filters: { mine?: boolean; ownerId?: string } = {},
 ) {
   if (filters.mine) return { ownerId: session.userId };
-  if (session.role === "SALES") return { ownerId: session.userId };
+  if (isSalesRole(session.role as Role)) return { ownerId: session.userId };
   if (filters.ownerId) return { ownerId: filters.ownerId };
   return {};
 }

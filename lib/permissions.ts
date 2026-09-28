@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
 
 export const PERMISSIONS = {
   dashboardRead: "dashboard.read",
@@ -56,6 +56,7 @@ const ROLE_PERMISSIONS: Record<Role, PermissionCode[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS.map((item) => item.code),
   OWNER: ALL_PERMISSIONS.map((item) => item.code).filter((code) => code !== PERMISSIONS.saasAdmin),
   MANAGER: COMMERCIAL,
+  TEAM_LEAD: COMMERCIAL,
   SALES: COMMERCIAL,
 };
 

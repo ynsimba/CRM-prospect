@@ -3,6 +3,7 @@ import ProspectForm from "@/components/ProspectForm";
 import { requirePermission } from "@/lib/auth";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS } from "@/lib/permissions";
+import { isSalesRole } from "@/lib/roles";
 
 export default async function NewProspectPage() {
   const session = await requirePermission(PERMISSIONS.prospectsManage);
@@ -22,7 +23,7 @@ export default async function NewProspectPage() {
           owners={options.owners}
           defaultStatusId={defaultStatusId}
           defaultOwnerId={session.userId}
-          lockOwner={session.role === "SALES"}
+          lockOwner={isSalesRole(session.role)}
         />
       </div>
     </Shell>

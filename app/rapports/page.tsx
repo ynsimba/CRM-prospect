@@ -8,6 +8,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { getReports } from "@/lib/reports";
 import { stagePillClass } from "@/lib/pipeline-logic";
 import { statusPillClass } from "@/lib/crm";
+import type { Row } from "@/lib/prisma";
 
 const MONTH_LABELS = [
   "janvier",
@@ -201,7 +202,7 @@ export default async function ReportsPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {report.byStage.map((stage) => (
+                    {report.byStage.map((stage: Row) => (
                       <tr key={stage.id}>
                         <td>
                           <span className={`status-pill ${stagePillClass(stage)}`}>{stage.name}</span>

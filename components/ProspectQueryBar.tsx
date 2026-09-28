@@ -44,13 +44,13 @@ export default function ProspectQueryBar({
       <nav className="query-crumb" aria-label="Fil d’Ariane">
         <span>Interface Commerciale</span>
         <i className="bi bi-chevron-right" aria-hidden />
-        <strong>{view.mine ? "Mes prospects" : "Tout les prospects"}</strong>
+        <strong>{view.mine ? "Mes prospects" : "Tous les prospects"}</strong>
       </nav>
-      <h1 className="query-heading">{view.mine ? "Mes prospects" : "Tout les prospects"}</h1>
+      <h1 className="query-heading">{view.mine ? "Mes prospects" : "Tous les prospects"}</h1>
       <p className="query-desc">
         {view.mine
           ? "Prospects du délégué commercial connecté"
-          : "Liste de toute nos entreprises en prospection"}
+          : "Liste de toutes nos entreprises en prospection"}
       </p>
 
       <div className="query-toolbar">

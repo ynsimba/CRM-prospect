@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { getContact } from "@/lib/contacts";
 import { fullName, personCategoryLabel, statusPillClass, whatsappHref } from "@/lib/crm";
 import { PERMISSIONS } from "@/lib/permissions";
+import type { Row } from "@/lib/prisma";
 
 export default async function ContactDetailPage({
   params,
@@ -117,7 +118,7 @@ export default async function ContactDetailPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {contact.prospects.map((prospect) => (
+                    {contact.prospects.map((prospect: Row) => (
                       <tr key={prospect.id}>
                         <td>
                           <Link href={`/prospects/${prospect.id}`}>

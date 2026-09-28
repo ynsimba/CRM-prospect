@@ -7,6 +7,7 @@ import { getCompany } from "@/lib/companies";
 import { fullName, statusPillClass } from "@/lib/crm";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
+import type { Row } from "@/lib/prisma";
 
 export default async function CompanyDetailPage({
   params,
@@ -87,7 +88,7 @@ export default async function CompanyDetailPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {company.contacts.map((contact) => (
+                    {company.contacts.map((contact: Row) => (
                       <tr key={contact.id}>
                         <td>
                           <Link href={`/contacts/${contact.id}`}>
@@ -119,7 +120,7 @@ export default async function CompanyDetailPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {company.prospects.map((prospect) => (
+                    {company.prospects.map((prospect: Row) => (
                       <tr key={prospect.id}>
                         <td>
                           <Link href={`/prospects/${prospect.id}`}>

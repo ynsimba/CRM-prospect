@@ -48,6 +48,7 @@ test("la direction n’a que son interface", () => {
     [
       "Tableau de bord",
       "Tous les Prospect",
+      "Agents commerciaux",
       "Assignation Tâches",
       "Suivie des tâches",
       "Tâches par département",

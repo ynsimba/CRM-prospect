@@ -1,26 +1,17 @@
-import { getDatabaseUrl } from "@/lib/env";
-
 export function loginFailureMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  const code =
-    typeof error === "object" && error !== null && "code" in error
-      ? String((error as { code?: string }).code)
-      : "";
 
   if (message.includes("SESSION_SECRET")) {
-    return "SESSION_SECRET manquant sur Vercel (au moins 16 caractères).";
+    return "SESSION_SECRET manquant (au moins 16 caractères).";
   }
-  if (!getDatabaseUrl()) {
-    return "DATABASE_URL manquant sur Vercel. Branche une Postgres (Neon, Supabase ou Vercel Postgres).";
+  if (!process.env.LARAVEL_API_URL) {
+    return "LARAVEL_API_URL manquant. Le backend Laravel doit utiliser MySQL safecheck_com.";
   }
-  if (code === "P1001" || code === "P1017" || /can't reach database|econnrefused|etimedout/i.test(message)) {
-    return "Impossible de joindre la base. Vérifie DATABASE_URL (hôte, mot de passe, sslmode=require).";
+  if (/laravel injoignable|econnrefused|fetch failed|enotfound|etimedout/i.test(message)) {
+    return "Le backend Laravel ne répond pas. Lance npm run dev:api (MySQL MAMP, base safecheck_com, port 8889).";
   }
-  if (code === "P2021" || code === "P2022" || /does not exist/i.test(message)) {
-    return "Les tables n’existent pas encore. Exécute prisma migrate deploy puis prisma db seed sur cette base.";
+  if (/base table or view not found|n'existe pas|doesn't exist/i.test(message)) {
+    return "Les tables n’existent pas encore. Lance npm run db:migrate puis npm run db:seed.";
   }
-  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
-    return "Connexion à la base impossible. Ajoute DATABASE_URL et SESSION_SECRET dans Vercel, puis relance un déploiement.";
-  }
-  return "Base de données indisponible. Lance npm run db:up puis npm run db:reset.";
+  return "Base de données indisponible. Vérifie MySQL (MAMP) et le serveur Laravel.";
 }

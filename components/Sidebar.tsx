@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
+import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
 import { initialsFromName } from "@/lib/crm";
@@ -53,7 +54,15 @@ export default function Sidebar({
   return (
     <aside id="app-sidebar" className={`sidebar ${open ? "open" : ""}`}>
       <div className="sidebar-logo">
-        <img src="/logo.png" alt="Safecheck RDC" className="sidebar-brand" />
+        <Image
+          src="/logo.png"
+          alt="Safecheck RDC"
+          className="sidebar-brand"
+          width={1495}
+          height={494}
+          sizes="200px"
+          loading="eager"
+        />
         <button
           type="button"
           className="sidebar-hide"

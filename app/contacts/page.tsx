@@ -6,6 +6,7 @@ import { listContacts } from "@/lib/contacts";
 import { personCategoryLabel, whatsappHref } from "@/lib/crm";
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
+import { isSalesRole } from "@/lib/roles";
 
 export default async function ContactsPage({
   searchParams,
@@ -13,7 +14,7 @@ export default async function ContactsPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const session = await requirePermission(PERMISSIONS.companiesRead);
-  const isSales = session.role === "SALES";
+  const isSales = isSalesRole(session.role);
   const canManage = roleHasPermission(session.role, PERMISSIONS.companiesManage);
   const showCreateForm = canManage && !isSales;
   const { q } = await searchParams;

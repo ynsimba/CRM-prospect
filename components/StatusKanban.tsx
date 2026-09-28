@@ -39,7 +39,13 @@ export default function StatusKanban({
   }
 
   return (
-    <div className={`kanban-board${pending ? " is-busy" : ""}`}>
+    <div
+      className={`kanban-board${pending ? " is-busy" : ""}`}
+      role="region"
+      aria-label="Colonnes du tableau"
+      aria-busy={pending}
+      tabIndex={0}
+    >
       {columns.map((column) => (
         <section
           key={column.id}

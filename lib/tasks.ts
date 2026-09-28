@@ -1,11 +1,11 @@
 import "server-only";
 
-import { ProspectPriority, Role, TaskStatus } from "@prisma/client";
+import { ProspectPriority, TaskStatus, TaskType } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { orgScope, ownedScope } from "@/lib/auth";
 import { nextTaskStatus, TASK_STATUS_LABELS } from "@/lib/activity-logic";
 import { notify } from "@/lib/notifications";
-import { isSalesRole } from "@/lib/roles";
+import { isSalesRole, AGENT_ROLES } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/session";
 import { nextDisplayCode } from "@/lib/status-history";
 
@@ -48,9 +48,9 @@ export async function listTasks(session: SessionPayload, filters: TaskFilters = 
           : filters.status
             ? { status: filters.status }
             : {}),
-      ...(filters.ownerId && session.role !== "SALES" ? { ownerId: filters.ownerId } : {}),
+      ...(filters.ownerId && !isSalesRole(session.role) ? { ownerId: filters.ownerId } : {}),
       ...(filters.assignedById ? { assignedById: filters.assignedById } : {}),
-      ...(filters.salesOwners || filters.assignedById ? { owner: { role: Role.SALES } } : {}),
+      ...(filters.salesOwners || filters.assignedById ? { owner: { role: { in: AGENT_ROLES } } } : {}),
       ...(q
         ? {
             OR: [
@@ -83,7 +83,7 @@ async function resolveTaskOwnerId(session: SessionPayload, ownerId?: string) {
       id: ownerId,
       organizationId: session.organizationId,
       isActive: true,
-      role: Role.SALES,
+      role: { in: AGENT_ROLES },
     },
     select: { id: true, name: true },
   });
@@ -144,6 +144,7 @@ export async function createTask(
   session: SessionPayload,
   input: {
     title: string;
+    type?: TaskType;
     description?: string;
     priority: ProspectPriority;
     dueAt?: Date;
@@ -187,6 +188,7 @@ export async function createTask(
       ownerId,
       assignedById: session.userId,
       title,
+      type: input.type ?? "TASK",
       description: input.description,
       directorNote: input.directorNote,
       ownerNote: input.ownerNote,
@@ -266,7 +268,7 @@ export async function setTaskDirectorNote(session: SessionPayload, taskId: strin
   }
   const note = directorNote?.trim() || null;
   const task = await prisma.task.findFirst({
-    where: { id: taskId, ...orgScope(session), owner: { role: Role.SALES } },
+    where: { id: taskId, ...orgScope(session), owner: { role: { in: AGENT_ROLES } } },
   });
   if (!task) {
     throw new Error("Tâche introuvable.");

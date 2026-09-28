@@ -1,6 +1,6 @@
 "use server";
 
-import { ProspectPriority } from "@prisma/client";
+import { ProspectPriority } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";

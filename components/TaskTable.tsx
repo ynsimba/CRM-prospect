@@ -69,7 +69,7 @@ export default function TaskTable({
                   {task.priority !== "NORMAL" ? (
                     <div className="muted-line">
                       <span className={`status-pill ${priorityPillClass(task.priority)}`}>
-                        {PRIORITY_LABELS[task.priority]}
+                        {PRIORITY_LABELS[task.priority as keyof typeof PRIORITY_LABELS]}
                       </span>
                     </div>
                   ) : null}
@@ -95,7 +95,7 @@ export default function TaskTable({
                 </td>
                 <td>
                   <span className={`status-pill ${taskStatusPill(task.status)}`}>
-                    {TASK_STATUS_LABELS[task.status]}
+                    {TASK_STATUS_LABELS[task.status as keyof typeof TASK_STATUS_LABELS]}
                   </span>
                 </td>
                 {showOwner ? <td>{task.owner.name}</td> : null}

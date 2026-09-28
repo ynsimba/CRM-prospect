@@ -1,9 +1,9 @@
 import "server-only";
 
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/enums";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { ASSIGNABLE_ROLES } from "@/lib/roles";
+import { ASSIGNABLE_ROLES, AGENT_ROLES } from "@/lib/roles";
 import { isStaffEmail, normalizeStaffEmail, staffEmailMessage } from "@/lib/staff-email";
 import type { SessionPayload } from "@/lib/session";
 import { orgScope } from "@/lib/auth";
@@ -18,7 +18,7 @@ export async function listUsers(session: SessionPayload) {
 
 export async function listSalesAgents(session: SessionPayload) {
   return prisma.user.findMany({
-    where: { ...orgScope(session), isActive: true, role: Role.SALES },
+    where: { ...orgScope(session), isActive: true, role: { in: AGENT_ROLES } },
     select: { id: true, name: true, team: { select: { id: true, name: true } } },
     orderBy: { name: "asc" },
   });

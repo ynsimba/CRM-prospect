@@ -2,7 +2,7 @@ import "server-only";
 
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/lib/enums";
 import { getSessionSecret } from "@/lib/env";
 
 const COOKIE_NAME = "session";

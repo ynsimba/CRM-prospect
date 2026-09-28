@@ -29,3 +29,12 @@ test("échappe les champs pour Excel", () => {
   assert.ok(csv.startsWith("\uFEFF"));
   assert.ok(csv.includes('"A;B"'));
 });
+
+test("neutralise les formules à l’export mais garde téléphones et montants", () => {
+  assert.equal(csvEscape("=HYPERLINK(\"http://x\")"), `"'=HYPERLINK(""http://x"")"`);
+  assert.equal(csvEscape("@SUM(A1)"), "'@SUM(A1)");
+  assert.equal(csvEscape("+cmd|' /C calc'!A0"), "'+cmd|' /C calc'!A0");
+  assert.equal(csvEscape("-2+3"), "'-2+3");
+  assert.equal(csvEscape("+243 81 234 5678"), "+243 81 234 5678");
+  assert.equal(csvEscape("-1500"), "-1500");
+});

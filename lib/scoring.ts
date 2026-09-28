@@ -26,9 +26,9 @@ export async function refreshProspectScore(session: SessionPayload, prospectId: 
     companyId: prospect.companyId,
     jobTitle: prospect.jobTitle,
     priority: prospect.priority,
-    tags: prospect.tags.map((item) => item.tag.name),
+    tags: prospect.tags.map((item: { tag: { name: string } }) => item.tag.name),
     statusSlug: prospect.status.slug,
-    activityTypes: prospect.activities.map((item) => item.type),
+    activityTypes: prospect.activities.map((item: { type: string }) => item.type),
     lastContactAt: prospect.lastContactAt,
     nextContactAt: prospect.nextContactAt,
   });

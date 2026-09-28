@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import DateField from "@/components/DateField";
 import { createTaskAction, type ActivityFormState } from "@/app/actions/activities";
 import { PRIORITY_LABELS } from "@/lib/crm";
+import { TASK_TYPE_LABELS } from "@/lib/activity-logic";
 
 const initialState: ActivityFormState = {};
 
@@ -67,6 +68,16 @@ export default function TaskForm({
           </select>
         </label>
       ) : null}
+      <label className="login-field">
+        Type
+        <select name="type" defaultValue="TASK">
+          {Object.entries(TASK_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
       <label className="login-field">
         Priorité
         <select name="priority" defaultValue="NORMAL">

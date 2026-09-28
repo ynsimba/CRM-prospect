@@ -13,6 +13,7 @@ import { formatFc } from "@/lib/money";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getDefaultPipeline, getOpportunity, getPipelineOptions } from "@/lib/pipeline";
 import { stagePillClass, weightedAmount } from "@/lib/pipeline-logic";
+import type { Row } from "@/lib/prisma";
 
 export default async function OpportunityDetailPage({
   params,
@@ -151,7 +152,7 @@ export default async function OpportunityDetailPage({
                 <label className="login-field">
                   Étape
                   <select name="stageId" defaultValue={opportunity.stageId}>
-                    {pipeline.stages.map((stage) => (
+                    {pipeline.stages.map((stage: Row) => (
                       <option key={stage.id} value={stage.id}>
                         {stage.name} ({stage.probability}%)
                       </option>
@@ -195,7 +196,7 @@ export default async function OpportunityDetailPage({
               <div className="table-wrap">
                 <table className="data-table">
                   <tbody>
-                    {opportunity.tasks.map((task) => (
+                    {opportunity.tasks.map((task: Row) => (
                       <tr key={task.id}>
                         <td>
                           <strong>{task.title}</strong>
@@ -213,7 +214,7 @@ export default async function OpportunityDetailPage({
                               </button>
                             </form>
                           ) : (
-                            TASK_STATUS_LABELS[task.status]
+                            TASK_STATUS_LABELS[task.status as keyof typeof TASK_STATUS_LABELS]
                           )}
                         </td>
                       </tr>

@@ -1,4 +1,4 @@
-import { ProspectPriority } from "@prisma/client";
+import { ProspectPriority } from "@/lib/enums";
 
 export function emptyToNull(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();

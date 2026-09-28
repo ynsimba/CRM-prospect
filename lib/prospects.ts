@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ProspectPriority, type Prisma } from "@prisma/client";
+import { ProspectPriority } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { orgScope, ownedScope } from "@/lib/auth";
 import { computeProspectScore, fullName, type ProspectFilters } from "@/lib/crm";
@@ -11,10 +11,12 @@ import type { SessionPayload } from "@/lib/session";
 import { archivedWhere, notArchivedWhere } from "@/lib/safecheck";
 import { findCompanyByName } from "@/lib/companies";
 import { nextDisplayCode, notifyDirectorsOfFinalStatus, recordStatusHistory } from "@/lib/status-history";
+import { isSalesRole } from "@/lib/roles";
+import { autoAssignNewProspect, recordOwnerChange } from "@/lib/agents";
 
 export type { ProspectFilters };
 
-function scoreWhere(score: ProspectFilters["score"]): Prisma.IntFilter | undefined {
+function scoreWhere(score: ProspectFilters["score"]): { lte?: number; gt?: number } | undefined {
   if (score === "froid") return { lte: 30 };
   if (score === "tiede") return { gt: 30, lte: 60 };
   if (score === "chaud") return { gt: 60, lte: 80 };
@@ -22,7 +24,7 @@ function scoreWhere(score: ProspectFilters["score"]): Prisma.IntFilter | undefin
   return undefined;
 }
 
-function searchClause(q: string): Prisma.ProspectWhereInput {
+function searchClause(q: string) {
   return {
     OR: [
       { firstName: { contains: q, mode: "insensitive" } },
@@ -36,8 +38,8 @@ function searchClause(q: string): Prisma.ProspectWhereInput {
   };
 }
 
-function extraProspectClauses(filters: ProspectFilters): Prisma.ProspectWhereInput[] {
-  const extra: Prisma.ProspectWhereInput[] = [];
+function extraProspectClauses(filters: ProspectFilters) {
+  const extra = [];
   const q = filters.q?.trim();
   if (q) extra.push(searchClause(q));
   if (filters.archived === true) {
@@ -53,7 +55,7 @@ function extraProspectClauses(filters: ProspectFilters): Prisma.ProspectWhereInp
   return extra;
 }
 
-function prospectOrderBy(sort: ProspectFilters["sort"]): Prisma.ProspectOrderByWithRelationInput[] {
+function prospectOrderBy(sort: ProspectFilters["sort"]) {
   if (sort === "name") return [{ lastName: "asc" }, { firstName: "asc" }];
   if (sort === "company") return [{ company: { name: "asc" } }, { lastName: "asc" }];
   if (sort === "score") return [{ score: "desc" }, { updatedAt: "desc" }];
@@ -125,7 +127,7 @@ export async function findDuplicateProspects(
   session: SessionPayload,
   input: { email?: string | null; phone?: string | null; whatsapp?: string | null },
 ) {
-  const clauses: Prisma.ProspectWhereInput[] = [];
+  const clauses = [];
   if (input.email) clauses.push({ email: { equals: input.email, mode: "insensitive" } });
   if (input.phone) clauses.push({ phone: input.phone });
   if (input.whatsapp) clauses.push({ whatsapp: input.whatsapp });
@@ -166,7 +168,7 @@ export async function createProspect(
     nextContactAt?: Date;
   },
 ) {
-  if (session.role === "SALES") {
+  if (isSalesRole(session.role)) {
     input.ownerId = session.userId;
   }
 
@@ -292,7 +294,7 @@ export async function createProspect(
       statusId: status.id,
       statusComment: input.statusComment,
       sourceId: input.sourceId,
-      ownerId: session.role === "SALES" ? session.userId : (input.ownerId ?? session.userId),
+      ownerId: isSalesRole(session.role) ? session.userId : (input.ownerId ?? session.userId),
       priority: input.priority,
       notes: input.notes,
       lastActionAt: now,
@@ -323,8 +325,15 @@ export async function createProspect(
     comment: input.statusComment ?? input.notes,
   });
 
+  // Direction created it without choosing an agent: apply the distribution rule (§6), else record the choice (§5).
+  let ownerId: string | null = created.ownerId ?? null;
+  if (!isSalesRole(session.role) && !input.ownerId) {
+    ownerId = (await autoAssignNewProspect(session, created)) ?? ownerId;
+  } else if (ownerId && ownerId !== session.userId) {
+    await recordOwnerChange(session, created.id, null, ownerId);
+  }
+
   const scored = await refreshProspectScore(session, created.id);
-  const ownerId = created.ownerId;
   if (ownerId && ownerId !== session.userId) {
     await notify({
       organizationId: session.organizationId,
@@ -371,7 +380,7 @@ export async function updateProspectRow(
     throw new Error("Prospect introuvable.");
   }
 
-  if (session.role === "SALES" && input.ownerId !== undefined && input.ownerId !== session.userId) {
+  if (isSalesRole(session.role) && input.ownerId !== undefined && input.ownerId !== session.userId) {
     throw new Error("Seul le directeur peut réassigner un prospect.");
   }
 
@@ -420,6 +429,10 @@ export async function updateProspectRow(
     },
     include: { owner: { select: { name: true } } },
   });
+
+  if (input.ownerId !== undefined && input.ownerId !== prospect.ownerId) {
+    await recordOwnerChange(session, prospect.id, prospect.ownerId ?? null, input.ownerId ?? null);
+  }
 
   if (statusChanged || commentChanged) {
     await recordStatusHistory({

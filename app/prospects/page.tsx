@@ -14,6 +14,7 @@ import {
   sortGridRows,
 } from "@/lib/prospect-list-logic";
 import { listProspects } from "@/lib/prospects";
+import { isSalesRole } from "@/lib/roles";
 
 export default async function ProspectsPage({
   searchParams,
@@ -43,7 +44,7 @@ export default async function ProspectsPage({
   }>;
 }) {
   const session = await requirePermission(PERMISSIONS.prospectsRead);
-  const isSales = session.role === "SALES";
+  const isSales = isSalesRole(session.role);
   const canManage = roleHasPermission(session.role, PERMISSIONS.prospectsManage);
   const params = await searchParams;
   const filters = parseProspectFilters(params);

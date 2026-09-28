@@ -1,4 +1,4 @@
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus } from "@/lib/enums";
 import Shell from "@/components/Shell";
 import TaskForm from "@/components/TaskForm";
 import TaskTable from "@/components/TaskTable";
@@ -9,6 +9,7 @@ import { getPipelineOptions } from "@/lib/pipeline";
 import { TASK_STATUS_LABELS } from "@/lib/activity-logic";
 import { listTasks } from "@/lib/tasks";
 import { listSalesAgents } from "@/lib/users";
+import { isSalesRole } from "@/lib/roles";
 
 export default async function TasksPage({
   searchParams,
@@ -16,7 +17,7 @@ export default async function TasksPage({
   searchParams: Promise<{ q?: string; status?: string; owner?: string }>;
 }) {
   const session = await requirePermission(PERMISSIONS.activitiesRead);
-  const isSales = session.role === "SALES";
+  const isSales = isSalesRole(session.role);
   const canAssign = roleHasPermission(session.role, PERMISSIONS.activitiesManage) && !isSales;
   const canUpdate = roleHasPermission(session.role, PERMISSIONS.activitiesManage);
   const params = await searchParams;

@@ -9,6 +9,16 @@ import { listProspects } from "@/lib/prospects";
 import { SAFECHECK_STATUSES } from "@/lib/safecheck";
 import { listTasks } from "@/lib/tasks";
 
+function overdueTasks<T extends { dueAt: Date | null; status: string }>(tasks: T[]) {
+  const now = Date.now();
+  return tasks.filter(
+    (task) =>
+      task.dueAt &&
+      task.dueAt.getTime() < now &&
+      (task.status === "TODO" || task.status === "IN_PROGRESS"),
+  );
+}
+
 export default async function CommercialInterfacePage() {
   const session = await requirePermission(PERMISSIONS.prospectsRead);
   const canManage = roleHasPermission(session.role, PERMISSIONS.prospectsManage);
@@ -19,12 +29,7 @@ export default async function CommercialInterfacePage() {
     getCrmOptions(session),
   ]);
   const defaultStatusId = options.statuses.find((item) => item.slug === "opportunite")?.id;
-  const overdue = tasks.filter(
-    (task) =>
-      task.dueAt &&
-      task.dueAt.getTime() < Date.now() &&
-      (task.status === "TODO" || task.status === "IN_PROGRESS"),
-  );
+  const overdue = overdueTasks(tasks);
   const columns: StatusKanbanColumn[] = SAFECHECK_STATUSES.map((spec) => {
     const status = options.statuses.find((item) => item.slug === spec.slug);
     return {

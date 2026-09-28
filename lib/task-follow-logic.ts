@@ -1,4 +1,4 @@
-import type { Role, TaskStatus } from "@prisma/client";
+import type { Role, TaskStatus } from "@/lib/enums";
 import { startOfDay } from "@/lib/activity-logic";
 import { isDirectionRole } from "@/lib/roles";
 

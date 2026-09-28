@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ActivityType } from "@prisma/client";
+import { ActivityType } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { orgScope } from "@/lib/auth";
 import { isContactActivity } from "@/lib/activity-logic";

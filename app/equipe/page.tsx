@@ -126,7 +126,7 @@ export default async function TeamPage({
                           <td>
                             <strong>{rep.name}</strong>
                             <div className="muted-line">
-                              {ROLE_LABELS[rep.role]}
+                              {ROLE_LABELS[rep.role as keyof typeof ROLE_LABELS]}
                               {rep.teamName ? ` · ${rep.teamName}` : ""}
                             </div>
                           </td>

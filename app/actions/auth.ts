@@ -8,8 +8,13 @@ import { createSession, deleteSession } from "@/lib/session";
 import { loginFailureMessage } from "@/lib/db-error";
 import { homePathForRole } from "@/lib/roles";
 
+// Compared when the e-mail is unknown so both failure paths take the same bcrypt time.
+const DUMMY_HASH = "$2b$10$PqiLcZfTR6D2J2dbkrrVEuI0blZMb372GB/Gqsp/c3ShG5NGnWfUe";
+
 export type LoginState = {
   error?: string;
+  /** Echoed back so the field keeps its value after a failed attempt. */
+  email?: string;
 };
 
 export async function loginAction(
@@ -22,7 +27,7 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { error: "E-mail et mot de passe requis." };
+    return { error: "E-mail et mot de passe requis.", email };
   }
 
   let nextPath = "/";
@@ -32,13 +37,9 @@ export async function loginAction(
       where: { email, isActive: true },
     });
 
-    if (!user) {
-      return { error: "Identifiants incorrects." };
-    }
-
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      return { error: "Identifiants incorrects." };
+    const valid = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
+    if (!user || !valid) {
+      return { error: "Identifiants incorrects.", email };
     }
 
     await prisma.user.update({
@@ -64,7 +65,7 @@ export async function loginAction(
     nextPath = homePathForRole(user.role);
   } catch (error) {
     console.error(error);
-    return { error: loginFailureMessage(error) };
+    return { error: loginFailureMessage(error), email };
   }
 
   redirect(nextPath);

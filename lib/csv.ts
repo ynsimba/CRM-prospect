@@ -81,8 +81,14 @@ export function parseCsv(text: string) {
   return { delimiter, headers, rows };
 }
 
+// Cells Excel would evaluate as formulas; plain phone numbers and amounts ("+243 81…", "-1500") are left alone.
+function isFormulaLike(text: string) {
+  return /^[=@\t\r]/.test(text) || (/^[+-]/.test(text) && !/^[+-][\d\s().]*$/.test(text));
+}
+
 export function csvEscape(value: string, delimiter = ";") {
-  const text = value ?? "";
+  const raw = value ?? "";
+  const text = isFormulaLike(raw) ? `'${raw}` : raw;
   if (/["\n\r]/.test(text) || text.includes(delimiter)) {
     return `"${text.replace(/"/g, '""')}"`;
   }

@@ -1,4 +1,4 @@
-import { ActivityType, TaskStatus } from "@prisma/client";
+import { ActivityType, TaskStatus, TaskType } from "@/lib/enums";
 
 export const ACTIVITY_LABELS: Record<ActivityType, string> = {
   CALL: "Appel",
@@ -8,6 +8,7 @@ export const ACTIVITY_LABELS: Record<ActivityType, string> = {
   MEETING: "Rendez-vous",
   VISIT: "Visite",
   DEMO: "Démo",
+  PROPOSAL: "Proposition commerciale",
   NOTE: "Note",
   OTHER: "Autre",
 };
@@ -21,6 +22,16 @@ export const CONTACT_ACTIVITY_TYPES: ActivityType[] = [
   "VISIT",
   "DEMO",
 ];
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  CALL: "Appel",
+  FOLLOW_UP: "Relance",
+  MEETING: "Rendez-vous",
+  VISIT: "Visite",
+  REUNION: "Réunion",
+  DEADLINE: "Échéance",
+  TASK: "Tâche",
+};
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   TODO: "À faire",
