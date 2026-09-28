@@ -41,6 +41,15 @@ test("l’admin garde la navigation complète", () => {
   assert.equal(showDirectionModule("OWNER"), true);
 });
 
+test("le super admin a les droits admin, le journal et les utilisateurs", () => {
+  const { config } = navForRole("SUPER_ADMIN");
+  assert.equal(showCommercialModule("SUPER_ADMIN"), true);
+  assert.equal(showDirectionModule("SUPER_ADMIN"), true);
+  assert.ok(config.some((item) => item.href === "/utilisateurs"));
+  assert.ok(config.some((item) => item.href === "/journal"));
+  assert.ok(!config.some((item) => item.href === "/admin"));
+});
+
 test("la direction n’a que son interface", () => {
   const { main, config } = navForRole("MANAGER");
   assert.deepEqual(

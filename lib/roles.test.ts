@@ -33,5 +33,8 @@ test("chaque rôle a sa page d’accueil", () => {
   assert.equal(homePathForRole("OWNER"), "/");
   assert.equal(homePathForRole("MANAGER"), "/direction");
   assert.equal(homePathForRole("SALES"), "/");
-  assert.equal(homePathForRole("SUPER_ADMIN"), "/admin");
+  assert.equal(homePathForRole("SUPER_ADMIN"), "/");
+  assert.equal(isAdminRole("SUPER_ADMIN"), true);
+  assert.equal(isDirectionRole("SUPER_ADMIN"), true);
+  assert.equal(canManageAgents("SUPER_ADMIN"), true);
 });

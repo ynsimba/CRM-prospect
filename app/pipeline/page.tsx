@@ -2,7 +2,6 @@ import Shell from "@/components/Shell";
 import KanbanBoard, { type KanbanColumn } from "@/components/KanbanBoard";
 import OpportunityForm from "@/components/OpportunityForm";
 import { requirePermission } from "@/lib/auth";
-import { formatFc } from "@/lib/money";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getPipelineBoard, getPipelineOptions } from "@/lib/pipeline";
 import type { Row } from "@/lib/prisma";
@@ -45,7 +44,7 @@ export default async function PipelinePage({
           <h1 className="page-title">Pipeline</h1>
           <p className="card-sub">
             {board
-              ? `${board.totals.openCount} ouvertes · ${formatFc(board.totals.openTotal)} · pondéré ${formatFc(board.totals.openWeighted)}`
+              ? `${board.totals.openCount} opportunité${board.totals.openCount > 1 ? "s" : ""} ouverte${board.totals.openCount > 1 ? "s" : ""} · ${board.totals.wonCount} gagnée${board.totals.wonCount > 1 ? "s" : ""}`
               : "Aucun pipeline par défaut."}
           </p>
         </div>

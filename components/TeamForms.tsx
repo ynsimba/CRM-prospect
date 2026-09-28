@@ -103,10 +103,6 @@ export function GoalForm({
         Opportunités
         <input name="opportunitiesTarget" inputMode="numeric" placeholder="5" />
       </label>
-      <label className="login-field">
-        CA (FC)
-        <input name="revenueTarget" inputMode="numeric" placeholder="40 000 000" />
-      </label>
       {state.error ? <p className="login-error">{state.error}</p> : null}
       {state.success ? <p className="form-success">{state.success}</p> : null}
       <button type="submit" className="btn-download" disabled={pending}>

@@ -3,7 +3,6 @@ import Shell from "@/components/Shell";
 import { parseYearMonth } from "@/lib/activity-logic";
 import { requirePermission } from "@/lib/auth";
 import { conversionPercent } from "@/lib/report-logic";
-import { formatFc } from "@/lib/money";
 import { PERMISSIONS } from "@/lib/permissions";
 import { getReports } from "@/lib/reports";
 import { stagePillClass } from "@/lib/pipeline-logic";
@@ -51,8 +50,8 @@ export default async function ReportsPage({
         <div>
           <h1 className="page-title">Rapports</h1>
           <p className="card-sub">
-            {MONTH_LABELS[monthIndex]} {year} · conversion affaires {formatRate(kpis.dealConversion)} · pipeline{" "}
-            {formatFc(kpis.pipelineValue)}
+            {MONTH_LABELS[monthIndex]} {year} · conversion affaires {formatRate(kpis.dealConversion)} · {kpis.openOps}{" "}
+            opportunité{kpis.openOps > 1 ? "s" : ""} ouverte{kpis.openOps > 1 ? "s" : ""}
           </p>
         </div>
         <div className="page-head-actions">
@@ -101,14 +100,8 @@ export default async function ReportsPage({
               <tr>
                 <td>Affaires perdues</td>
                 <td>{kpis.lostOps}</td>
-                <td>CA gagné</td>
-                <td>{formatFc(kpis.wonRevenue)}</td>
-              </tr>
-              <tr>
-                <td>Valeur pipeline</td>
-                <td>{formatFc(kpis.pipelineValue)}</td>
-                <td>CA potentiel (pondéré)</td>
-                <td>{formatFc(kpis.pipelineWeighted)}</td>
+                <td>Conversion des affaires</td>
+                <td>{formatRate(kpis.dealConversion)}</td>
               </tr>
             </tbody>
           </table>
@@ -197,8 +190,6 @@ export default async function ReportsPage({
                     <tr>
                       <th>Étape</th>
                       <th>Affaires</th>
-                      <th>Montant</th>
-                      <th>Pondéré</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -208,8 +199,6 @@ export default async function ReportsPage({
                           <span className={`status-pill ${stagePillClass(stage)}`}>{stage.name}</span>
                         </td>
                         <td>{stage.count}</td>
-                        <td>{formatFc(stage.total)}</td>
-                        <td>{formatFc(stage.weighted)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -255,7 +244,6 @@ export default async function ReportsPage({
                 <th>Opportunités</th>
                 <th>Gagnés</th>
                 <th>Conversion</th>
-                <th>CA gagné</th>
               </tr>
             </thead>
             <tbody>
@@ -270,7 +258,6 @@ export default async function ReportsPage({
                   <td>{rep.opportunities}</td>
                   <td>{rep.wonDeals}</td>
                   <td>{formatRate(conversionPercent(rep.wonDeals, rep.prospects))}</td>
-                  <td>{formatFc(rep.wonRevenue)}</td>
                 </tr>
               ))}
             </tbody>

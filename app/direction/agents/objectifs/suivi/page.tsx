@@ -4,12 +4,11 @@ import { monthLabel } from "@/components/agents/MonthPicker";
 import { ProgressBar, pct } from "@/components/agents/ui";
 import { GOAL_METRICS } from "@/lib/agent-cockpit-logic";
 import { goalTracking, requireAgentScope } from "@/lib/agents";
-import { formatFc } from "@/lib/money";
 
 type Metric = { key: string; label: string; achieved: number; target: number; pct: number | null };
 
 function Cell({ metric }: { metric: Metric }) {
-  const fmt = (value: number) => (metric.key === "revenue" ? formatFc(value) : value);
+  const fmt = (value: number) => value;
   return (
     <td className="goal-cell">
       <span className="goal-cell-figures">

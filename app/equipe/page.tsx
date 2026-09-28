@@ -4,7 +4,6 @@ import { GoalForm, TeamAssignForm, TeamCreateForm } from "@/components/TeamForms
 import { parseYearMonth } from "@/lib/activity-logic";
 import { requirePermission } from "@/lib/auth";
 import { goalProgress } from "@/lib/goal-logic";
-import { formatFc } from "@/lib/money";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { ROLE_LABELS } from "@/lib/roles";
 import { getTeamPerformance, listTeams } from "@/lib/team";
@@ -42,7 +41,7 @@ export default async function TeamPage({
     getTeamPerformance(session, year, monthIndex),
     listTeams(session),
   ]);
-  const revenueProgress = goalProgress(board.totals.wonRevenue, board.totals.revenueTarget);
+  const openOpportunities = board.reps.reduce((sum, rep) => sum + rep.opportunities, 0);
 
   return (
     <Shell activeHref="/equipe">
@@ -50,8 +49,7 @@ export default async function TeamPage({
         <div>
           <h1 className="page-title">Équipe</h1>
           <p className="card-sub">
-            {MONTH_LABELS[monthIndex]} {year} · {board.reps.length} commerciaux · CA gagné{" "}
-            {formatFc(board.totals.wonRevenue)}
+            {MONTH_LABELS[monthIndex]} {year} · {board.reps.length} commerciaux
           </p>
         </div>
         <div>
@@ -78,23 +76,12 @@ export default async function TeamPage({
                 <td>{board.totals.meetings}</td>
               </tr>
               <tr>
-                <td>Opportunités ouvertes</td>
-                <td>{formatFc(board.totals.openPipeline)}</td>
-              </tr>
-              <tr>
-                <td>Objectif CA (somme)</td>
-                <td>
-                  {board.totals.revenueTarget ? formatFc(board.totals.revenueTarget) : "—"} · {revenueProgress}%
-                </td>
+                <td>Opportunités</td>
+                <td>{openOpportunities}</td>
               </tr>
             </tbody>
           </table>
         </div>
-        {board.totals.revenueTarget > 0 ? (
-          <div className={`goal-bar${revenueProgress >= 80 ? " is-hot" : ""}`} style={{ marginTop: 12 }}>
-            <span style={{ width: `${revenueProgress}%` }} />
-          </div>
-        ) : null}
       </article>
 
       <div className="row g-3">
@@ -113,13 +100,12 @@ export default async function TeamPage({
                       <th>Prospects</th>
                       <th>RDV</th>
                       <th>Affaires</th>
-                      <th>CA gagné</th>
-                      <th>Objectif</th>
+                      <th>Objectif opportunités</th>
                     </tr>
                   </thead>
                   <tbody>
                     {board.reps.map((rep, index) => {
-                      const progress = goalProgress(rep.wonRevenue, rep.goal?.revenueTarget ?? 0);
+                      const progress = goalProgress(rep.opportunities, rep.goal?.opportunitiesTarget ?? 0);
                       return (
                         <tr key={rep.id}>
                           <td>{index + 1}</td>
@@ -142,11 +128,10 @@ export default async function TeamPage({
                             {rep.opportunities}
                             {rep.goal ? ` / ${rep.goal.opportunitiesTarget}` : ""}
                           </td>
-                          <td>{formatFc(rep.wonRevenue)}</td>
                           <td>
-                            {rep.goal ? (
+                            {rep.goal?.opportunitiesTarget ? (
                               <>
-                                {formatFc(rep.goal.revenueTarget)}
+                                {rep.opportunities} / {rep.goal.opportunitiesTarget}
                                 <div className={`goal-bar${progress >= 80 ? " is-hot" : ""}`} style={{ marginTop: 6 }}>
                                   <span style={{ width: `${progress}%` }} />
                                 </div>

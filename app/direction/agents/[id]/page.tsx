@@ -1,8 +1,7 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AgentDeleteForm from "@/components/AgentDeleteForm";
-import AgentForm from "@/components/AgentForm";
+import AgentEditModal from "@/components/AgentEditModal";
 import AgendaList from "@/components/agents/AgendaList";
 import AgentsModule from "@/components/agents/AgentsModule";
 import GoalForm from "@/components/agents/GoalForm";
@@ -11,7 +10,6 @@ import PerformanceDashboard from "@/components/agents/PerformanceDashboard";
 import PipelineBoard from "@/components/agents/PipelineBoard";
 import {
   AgentAvatar,
-  formatCalendarDate,
   formatDateShort,
   KpiTile,
   PeriodForm,
@@ -25,7 +23,6 @@ import {
   isUntreated,
   parsePeriod,
   presence,
-  seniorityLabel,
 } from "@/lib/agent-cockpit-logic";
 import {
   agendaFor,
@@ -40,7 +37,6 @@ import {
   requireAgentScope,
   timeline,
 } from "@/lib/agents";
-import { formatFc } from "@/lib/money";
 import { ROLE_LABELS } from "@/lib/roles";
 import { listTeams } from "@/lib/team";
 
@@ -154,30 +150,40 @@ const STATUS_CHOICES = [
   { status: "INACTIVE", label: "Inactif", help: "Compte désactivé, historique conservé.", icon: "bi-x-circle", action: "Désactiver" },
 ] as const;
 
-function FactRow({ icon, label, children }: { icon: string; label: string; children: ReactNode }) {
-  return (
-    <div className="profile-fact">
-      <span className="profile-fact-icon" aria-hidden>
-        <i className={`bi ${icon}`} />
-      </span>
-      <dt>{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
-
 async function ProfileTab({ scope, sheet }: { scope: Scope; sheet: Sheet }) {
-  const { agent, metrics } = sheet;
+  const { agent } = sheet;
   const [teams, zones, supervisors] = scope.canAdminister
     ? await Promise.all([listTeams(scope.session), listZones(scope), listSupervisors(scope)])
     : [[], [], []];
-  const seniority = seniorityLabel(agent.hiredAt);
   const online = presence(agent.lastSeenAt);
 
   return (
     <div className={`profile-module ${scope.canAdminister ? "" : "is-readonly"}`}>
       <aside className="profile-aside">
         <article className="profile-card">
+          {scope.canAdminister ? (
+            <AgentEditModal
+              action={updateAgentAction.bind(null, agent.id)}
+              teams={teams.map((team) => ({ id: team.id as string, name: team.name as string }))}
+              zones={zones}
+              supervisors={supervisors.filter((item) => item.id !== agent.id)}
+              agent={{
+                name: agent.name,
+                email: agent.email,
+                phone: agent.phone,
+                civility: agent.civility,
+                teamId: agent.teamId,
+                zoneId: agent.zoneId,
+                supervisorId: agent.supervisorId,
+                matricule: agent.matricule,
+                jobTitle: agent.jobTitle,
+                hiredAt: agent.hiredAt ? agent.hiredAt.toISOString().slice(0, 10) : null,
+                status: agent.status,
+                role: agent.role === "TEAM_LEAD" ? "TEAM_LEAD" : "SALES",
+                photoUrl: agent.photoUrl,
+              }}
+            />
+          ) : null}
           <div className="profile-cover" aria-hidden />
           <div className="profile-identity">
             <span className="profile-avatar agent-avatar-wrap">
@@ -215,116 +221,11 @@ async function ProfileTab({ scope, sheet }: { scope: Scope; sheet: Sheet }) {
               </a>
             </div>
           </div>
-          <dl className="profile-stats">
-            <div>
-              <dt>Ancienneté</dt>
-              <dd>{seniority ?? "—"}</dd>
-            </div>
-            <div>
-              <dt>Portefeuille</dt>
-              <dd>
-                {metrics.portfolio} prospect{metrics.portfolio > 1 ? "s" : ""}
-              </dd>
-            </div>
-            <div>
-              <dt>Pipeline</dt>
-              <dd>{formatFc(metrics.pipelineValue)}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="dash-card profile-section">
-          <h3>
-            <i className="bi bi-person-vcard" aria-hidden /> Informations RH
-          </h3>
-          <dl className="profile-facts">
-            <FactRow icon="bi-hash" label="Matricule">
-              {agent.matricule ?? <span className="profile-empty">Non attribué</span>}
-            </FactRow>
-            <FactRow icon="bi-telephone" label="Téléphone">
-              {agent.phone ? <a href={`tel:${agent.phone.replace(/\s/g, "")}`}>{agent.phone}</a> : <span className="profile-empty">Non renseigné</span>}
-            </FactRow>
-            <FactRow icon="bi-envelope" label="E-mail professionnel">
-              <a href={`mailto:${agent.email}`}>{agent.email}</a>
-            </FactRow>
-            <FactRow icon="bi-briefcase" label="Fonction">
-              {agent.jobTitle ?? <span className="profile-empty">Non renseignée</span>}
-            </FactRow>
-            <FactRow icon="bi-calendar-check" label="Date d’intégration">
-              {agent.hiredAt ? (
-                <>
-                  {formatCalendarDate(agent.hiredAt)}
-                  {seniority ? <span className="profile-sub"> · {seniority}</span> : null}
-                </>
-              ) : (
-                <span className="profile-empty">Non renseignée</span>
-              )}
-            </FactRow>
-          </dl>
-        </article>
-
-        <article className="dash-card profile-section">
-          <h3>
-            <i className="bi bi-graph-up-arrow" aria-hidden /> Informations commerciales
-          </h3>
-          <dl className="profile-facts">
-            <FactRow icon="bi-shield-check" label="Rôle">
-              {ROLE_LABELS[agent.role]}
-            </FactRow>
-            <FactRow icon="bi-people" label="Équipe">
-              {agent.team?.name ?? <span className="profile-empty">Aucune</span>}
-            </FactRow>
-            <FactRow icon="bi-person-up" label="Responsable">
-              {agent.supervisor?.name ?? <span className="profile-empty">Aucun</span>}
-            </FactRow>
-            <FactRow icon="bi-geo-alt" label="Zone commerciale">
-              {agent.zone?.name ?? <span className="profile-empty">Aucune</span>}
-            </FactRow>
-            <FactRow icon="bi-clock-history" label="Dernière connexion">
-              {agent.lastLoginAt
-                ? agent.lastLoginAt.toLocaleString("fr-CD", { dateStyle: "medium", timeStyle: "short" })
-                : <span className="profile-empty">Jamais connecté</span>}
-            </FactRow>
-          </dl>
         </article>
       </aside>
 
       {scope.canAdminister ? (
         <div className="profile-main">
-          <article className="dash-card agent-profile-form profile-editor">
-            <header className="profile-editor-head">
-              <span className="profile-editor-icon" aria-hidden>
-                <i className="bi bi-pencil-square" />
-              </span>
-              <div>
-                <h3>Modifier la fiche</h3>
-                <p className="card-sub">Les changements s’appliquent immédiatement et sont tracés dans le journal.</p>
-              </div>
-            </header>
-            <AgentForm
-              action={updateAgentAction.bind(null, agent.id)}
-              teams={teams.map((team) => ({ id: team.id as string, name: team.name as string }))}
-              zones={zones}
-              supervisors={supervisors.filter((item) => item.id !== agent.id)}
-              agent={{
-                name: agent.name,
-                email: agent.email,
-                phone: agent.phone,
-                civility: agent.civility,
-                teamId: agent.teamId,
-                zoneId: agent.zoneId,
-                supervisorId: agent.supervisorId,
-                matricule: agent.matricule,
-                jobTitle: agent.jobTitle,
-                hiredAt: agent.hiredAt ? agent.hiredAt.toISOString().slice(0, 10) : null,
-                status: agent.status,
-                role: agent.role === "TEAM_LEAD" ? "TEAM_LEAD" : "SALES",
-                photoUrl: agent.photoUrl,
-              }}
-              submitLabel="Enregistrer les modifications"
-            />
-          </article>
-
           <div className="profile-admin-row">
             <article className="dash-card profile-access">
               <h3>
@@ -421,13 +322,12 @@ function PortfolioTab({ sheet, statusFilter, view }: { sheet: Sheet; statusFilte
                 <th scope="col">Entreprise</th>
                 <th scope="col">Statut</th>
                 <th scope="col">Priorité</th>
-                <th scope="col" className="num">Valeur</th>
                 <th scope="col">Dernier contact</th>
                 <th scope="col">Prochaine action</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ prospect, value, nextAction }) => (
+              {rows.map(({ prospect, nextAction }) => (
                 <tr key={prospect.id}>
                   <td>
                     <Link href={`/prospects/${prospect.id}`} className="agent-name">
@@ -440,7 +340,6 @@ function PortfolioTab({ sheet, statusFilter, view }: { sheet: Sheet; statusFilte
                     <span className={`status-pill ${prospect.status.slug}`}>{prospect.statusName}</span>
                   </td>
                   <td>{PRIORITY_LABELS[prospect.priority] ?? prospect.priority}</td>
-                  <td className="num">{value ? formatFc(value) : "—"}</td>
                   <td>{formatDateShort(prospect.lastContactAt)}</td>
                   <td className={nextAction?.overdue ? "is-danger" : undefined}>
                     {nextAction ? `${nextAction.label}${nextAction.date ? ` ${formatDateShort(nextAction.date)}` : ""}` : "—"}
@@ -458,9 +357,16 @@ function PortfolioTab({ sheet, statusFilter, view }: { sheet: Sheet; statusFilte
 async function PipelineTab({ scope, agentId }: { scope: Scope; agentId: string }) {
   const board = await agentPipeline(scope, [agentId]);
   return (
-    <article className="dash-card">
-      <h3>Pipeline personnel</h3>
-      <p className="card-sub">Nouveau → À contacter → Contacté → Qualifié → RDV → Proposition → Négociation → Gagné / Perdu</p>
+    <article className="dash-card pipe-card-shell">
+      <header className="pipe-head">
+        <span className="pipe-head-icon" aria-hidden>
+          <i className="bi bi-kanban" />
+        </span>
+        <div>
+          <h3>Pipeline personnel</h3>
+          <p className="card-sub">Où se trouvent les affaires de l’agent, de la première prise de contact à la signature.</p>
+        </div>
+      </header>
       <PipelineBoard columns={board.columns} />
     </article>
   );

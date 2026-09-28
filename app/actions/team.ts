@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
-import { parseFcAmount } from "@/lib/pipeline-logic";
 import { parseTargetInt } from "@/lib/goal-logic";
 import { PERMISSIONS } from "@/lib/permissions";
 import { assignUserTeam, createTeam, upsertGoal } from "@/lib/team";
@@ -80,7 +79,7 @@ export async function saveGoalAction(
       prospectsTarget: parseTargetInt(String(formData.get("prospectsTarget") ?? "0"), "Prospects"),
       meetingsTarget: parseTargetInt(String(formData.get("meetingsTarget") ?? "0"), "Rendez-vous"),
       opportunitiesTarget: parseTargetInt(String(formData.get("opportunitiesTarget") ?? "0"), "Opportunités"),
-      revenueTarget: parseFcAmount(String(formData.get("revenueTarget") ?? "0") || "0"),
+      revenueTarget: 0,
     });
     await auditAs(session, {
       action: "goal.upsert",

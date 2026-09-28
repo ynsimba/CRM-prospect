@@ -1,7 +1,6 @@
 import { requirePermission } from "@/lib/auth";
 import { parseYearMonth } from "@/lib/activity-logic";
 import { toCsv } from "@/lib/csv";
-import { formatFc } from "@/lib/money";
 import { conversionPercent } from "@/lib/report-logic";
 import { PERMISSIONS } from "@/lib/permissions";
 import { getReports } from "@/lib/reports";
@@ -20,8 +19,6 @@ export async function GET(request: Request) {
     ["KPI", "Qualifiés", String(report.kpis.qualified)],
     ["KPI", "Convertis", String(report.kpis.converted)],
     ["KPI", "Affaires gagnées", String(report.kpis.wonOps)],
-    ["KPI", "CA gagné", formatFc(report.kpis.wonRevenue)],
-    ["KPI", "Pipeline", formatFc(report.kpis.pipelineValue)],
     ["KPI", "Conversion affaires", `${report.kpis.dealConversion} %`],
     ...report.funnel.map((step) => ["Entonnoir", step.label, String(step.value)]),
     ...report.sources.map((source) => [

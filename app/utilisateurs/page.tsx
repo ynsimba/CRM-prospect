@@ -1,7 +1,9 @@
 import Shell from "@/components/Shell";
 import UserCreateModal from "@/components/UserCreateModal";
+import UserDeleteButton from "@/components/UserDeleteButton";
 import { toggleUserAction } from "@/app/actions/users";
 import { requirePermission } from "@/lib/auth";
+import { Role } from "@/lib/enums";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ROLE_LABELS } from "@/lib/roles";
 import { listUsers } from "@/lib/users";
@@ -66,11 +68,16 @@ export default async function UsersPage() {
                         </td>
                         <td>
                           {user.id !== session.userId ? (
-                            <form action={toggleUserAction.bind(null, user.id)}>
-                              <button type="submit" className="table-action">
-                                {user.isActive ? "Désactiver" : "Activer"}
-                              </button>
-                            </form>
+                            <div className="user-row-actions">
+                              <form action={toggleUserAction.bind(null, user.id)}>
+                                <button type="submit" className="table-action">
+                                  {user.isActive ? "Désactiver" : "Activer"}
+                                </button>
+                              </form>
+                              {session.role === Role.SUPER_ADMIN ? (
+                                <UserDeleteButton userId={user.id} userName={user.name} />
+                              ) : null}
+                            </div>
                           ) : (
                             <span className="muted-line">Vous</span>
                           )}

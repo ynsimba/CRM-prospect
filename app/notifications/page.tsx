@@ -15,7 +15,7 @@ const KIND_LABELS: Record<string, { icon: string; label: string }> = {
 
 export default async function NotificationsPage() {
   const session = await requireSession();
-  const items = session.role === "SUPER_ADMIN" ? [] : await listNotifications(session);
+  const items = await listNotifications(session);
   const unread = items.filter((item) => !item.readAt).length;
 
   return (

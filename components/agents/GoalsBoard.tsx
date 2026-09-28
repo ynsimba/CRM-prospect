@@ -1,5 +1,4 @@
 import { dailyNeeded, goalStatus, monthPace, type GoalMetricKey, type GoalStatus } from "@/lib/agent-cockpit-logic";
-import { formatFc } from "@/lib/money";
 
 type GoalRow = { key: GoalMetricKey; label: string; achieved: number; target: number; pct: number | null };
 
@@ -9,7 +8,6 @@ export const GOAL_VISUALS: Record<GoalMetricKey, { icon: string; accent: string;
   meetings: { icon: "bi-calendar-event", accent: "violet", unit: "RDV" },
   proposals: { icon: "bi-file-earmark-text", accent: "amber", unit: "propositions" },
   conversions: { icon: "bi-trophy", accent: "pink", unit: "conversions" },
-  revenue: { icon: "bi-cash-stack", accent: "green", unit: "FC" },
 };
 
 const STATUS: Record<GoalStatus, { label: string; icon: string }> = {
@@ -20,8 +18,8 @@ const STATUS: Record<GoalStatus, { label: string; icon: string }> = {
   behind: { label: "En retard", icon: "bi-exclamation-octagon-fill" },
 };
 
-const fmt = (key: GoalMetricKey, value: number) =>
-  key === "revenue" ? formatFc(value) : new Intl.NumberFormat("fr-CD").format(value);
+const nf = new Intl.NumberFormat("fr-CD");
+const fmt = (_key: GoalMetricKey, value: number) => nf.format(value);
 
 function Ring({ pct }: { pct: number }) {
   const size = 132;
@@ -57,7 +55,7 @@ function Ring({ pct }: { pct: number }) {
 /** Objectives module (§7): monthly summary, one card per goal with pace, status and remaining effort. */
 export default function GoalsBoard({ rows, monthLabel, now = new Date() }: { rows: GoalRow[]; monthLabel: string; now?: Date }) {
   const pace = monthPace(now);
-  const visible = rows.filter((row) => row.key !== "revenue");
+  const visible = rows;
   const defined = visible.filter((row) => row.target > 0);
   const reached = defined.filter((row) => row.achieved >= row.target).length;
   const overall = defined.length
@@ -146,8 +144,8 @@ export default function GoalsBoard({ rows, monthLabel, now = new Date() }: { row
                 ) : (
                   <>
                     <strong>{pct} %</strong> · encore {fmt(row.key, left)}
-                    {row.key === "revenue" ? "" : ` ${visual.unit}`}
-                    {perDay > 0 && row.key !== "revenue" ? ` · ≈ ${perDay}/jour` : ""}
+                    {` ${visual.unit}`}
+                    {perDay > 0 ? ` · ≈ ${perDay}/jour` : ""}
                   </>
                 )}
               </p>

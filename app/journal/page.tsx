@@ -11,8 +11,8 @@ export default async function JournalPage() {
     <Shell activeHref="/journal">
       <div className="page-head">
         <div>
-          <h1 className="page-title">Journal d’audit</h1>
-          <p className="card-sub">Connexions, comptes et changements d’organisation.</p>
+          <h1 className="page-title">Journal des connexions et modifications</h1>
+          <p className="card-sub">Connexions et changements enregistrés sur les comptes et les données.</p>
         </div>
       </div>
 

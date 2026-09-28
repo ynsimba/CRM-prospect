@@ -48,6 +48,14 @@ class User extends CrmModel
 {
     protected $table = 'users';
 
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            Activity::query()->where('userId', $user->id)->delete();
+            Task::query()->where('ownerId', $user->id)->delete();
+        });
+    }
+
     public function organization()
     {
         return $this->belongsTo(Organization::class, 'organizationId');

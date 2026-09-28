@@ -34,10 +34,6 @@ export default function OpportunityForm({
         <input name="name" required placeholder="CRM ABC SARL" />
       </label>
       <label className="login-field">
-        Montant (FC)
-        <input name="amount" required inputMode="numeric" placeholder="8 500 000" />
-      </label>
-      <label className="login-field">
         Étape
         <select name="stageId" defaultValue={defaultStageId}>
           {stages.map((stage) => (

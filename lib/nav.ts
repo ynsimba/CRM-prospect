@@ -11,7 +11,6 @@ export type NavItem = {
 
 export const MAIN_NAV: NavItem[] = [
   { href: "/", icon: "bi-house", label: "Tableau de bord", permission: PERMISSIONS.dashboardRead },
-  { href: "/admin", icon: "bi-shield-check", label: "Admin SaaS", permission: PERMISSIONS.saasAdmin },
   { href: "/prospects", icon: "bi-person-lines-fill", label: "Prospects", permission: PERMISSIONS.prospectsRead },
   { href: "/pipeline", icon: "bi-kanban", label: "Pipeline", permission: PERMISSIONS.pipelineRead },
   { href: "/rapports", icon: "bi-activity", label: "Rapports", permission: PERMISSIONS.reportsRead },
@@ -64,13 +63,8 @@ const COMMERCIAL_HREFS = new Set(COMMERCIAL_NAV.map((item) => item.href));
 const DIRECTION_HREFS = new Set(DIRECTION_NAV.map((item) => item.href));
 const MODULE_HREFS = new Set(SIDEBAR_MODULES.map((item) => item.href));
 
-const ADMIN_HREFS = new Set(["/admin", "/parametres"]);
-
 export function visibleNav(items: NavItem[], role?: Role) {
   if (!role) return items;
-  if (role === "SUPER_ADMIN") {
-    return items.filter((item) => ADMIN_HREFS.has(item.href));
-  }
   return items.filter((item) => !item.permission || roleHasPermission(role, item.permission));
 }
 

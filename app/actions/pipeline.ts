@@ -5,7 +5,6 @@ import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
 import { emptyToNull, readOptionalId } from "@/lib/crm";
 import { PERMISSIONS } from "@/lib/permissions";
-import { parseFcAmount } from "@/lib/pipeline-logic";
 import {
   convertProspectToOpportunity,
   createOpportunity,
@@ -36,7 +35,8 @@ export async function createOpportunityAction(
   try {
     const opportunity = await createOpportunity(session, {
       name: String(formData.get("name") ?? ""),
-      amount: parseFcAmount(String(formData.get("amount") ?? "")),
+      // Monetary values are not captured in the app.
+      amount: 0,
       stageId: String(formData.get("stageId") ?? ""),
       companyId: readOptionalId(formData.get("companyId")),
       prospectId: readOptionalId(formData.get("prospectId")),
@@ -91,7 +91,8 @@ export async function convertProspectAction(
   try {
     const opportunity = await convertProspectToOpportunity(session, prospectId, {
       name: String(formData.get("name") ?? ""),
-      amount: parseFcAmount(String(formData.get("amount") ?? "")),
+      // Monetary values are not captured in the app.
+      amount: 0,
       stageId: readOptionalId(formData.get("stageId")),
     });
     await auditAs(session, {

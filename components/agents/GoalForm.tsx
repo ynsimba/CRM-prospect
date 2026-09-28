@@ -44,7 +44,7 @@ export default function GoalForm({
                       name={metric.target}
                       type="number"
                       min={0}
-                      step={metric.key === "revenue" ? 1000 : 1}
+                      step={1}
                       inputMode="numeric"
                       defaultValue={targets[metric.target] || ""}
                       placeholder="0"
@@ -62,14 +62,13 @@ export default function GoalForm({
           <label key={metric.key} className="login-field">
             <span className={compact ? "visually-hidden" : undefined}>
               {metric.label}
-              {metric.key === "revenue" ? " (FC)" : ""}
               {label ? ` — ${label}` : ""}
             </span>
             <input
               name={metric.target}
               type="number"
               min={0}
-              step={metric.key === "revenue" ? 1000 : 1}
+              step={1}
               inputMode="numeric"
               defaultValue={targets[metric.target] || ""}
               placeholder="0"

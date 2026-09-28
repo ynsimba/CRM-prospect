@@ -10,7 +10,7 @@ import { getOrganizationSettings } from "@/lib/settings";
 export default async function SettingsPage() {
   const session = await requireSession();
   const canSettings =
-    session.role !== "SUPER_ADMIN" && roleHasPermission(session.role, PERMISSIONS.settingsManage);
+    roleHasPermission(session.role, PERMISSIONS.settingsManage);
   const canUsers = roleHasPermission(session.role, PERMISSIONS.usersManage);
   const [organization, options] = await Promise.all([
     getOrganizationSettings(session),
@@ -47,7 +47,7 @@ export default async function SettingsPage() {
               />
             ) : (
               <p className="empty-copy">
-                {organization ? `${organization.name} · ${organization.currency}` : "Aucune organisation."}
+                {organization ? organization.name : "Aucune organisation."}
               </p>
             )}
           </article>

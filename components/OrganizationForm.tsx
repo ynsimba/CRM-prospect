@@ -30,10 +30,8 @@ export default function OrganizationForm(props: OrganizationFormProps) {
         Site web
         <input name="website" defaultValue={props.website} />
       </label>
-      <label className="login-field">
-        Devise
-        <input name="currency" defaultValue={props.currency} />
-      </label>
+      {/* No monetary values are shown in the app; keep the stored currency untouched on save. */}
+      <input type="hidden" name="currency" value={props.currency} />
       <label className="login-field">
         Fuseau horaire
         <input name="timezone" defaultValue={props.timezone} />

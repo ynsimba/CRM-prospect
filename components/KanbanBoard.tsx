@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { moveOpportunityAction } from "@/app/actions/pipeline";
-import { formatFc } from "@/lib/money";
-import { stagePillClass, weightedAmount } from "@/lib/pipeline-logic";
+import { stagePillClass } from "@/lib/pipeline-logic";
 
 export type KanbanCard = {
   id: string;
@@ -73,12 +72,10 @@ export default function KanbanBoard({
           <div className="kanban-col-head">
             <div>
               <strong>{column.name}</strong>
-              <div className="muted-line">
-                {column.opportunities.length} · pondéré {formatFc(column.weighted)}
-              </div>
+              <div className="muted-line">{column.probability} % de chances</div>
             </div>
             <span className={`status-pill ${stagePillClass(column)}`}>
-              {formatFc(column.total)}
+              {column.opportunities.length} affaire{column.opportunities.length > 1 ? "s" : ""}
             </span>
           </div>
           {column.opportunities.map((item) => (
@@ -100,8 +97,7 @@ export default function KanbanBoard({
               </Link>
               <div className="muted-line">{item.companyName ?? item.ownerName ?? "—"}</div>
               <div className="kanban-card-meta">
-                <span>{formatFc(item.amount)}</span>
-                <span>{formatFc(weightedAmount(item.amount, item.probability))}</span>
+                <span>{item.probability} % de chances</span>
               </div>
               {canManage ? (
                 <label className="login-field">

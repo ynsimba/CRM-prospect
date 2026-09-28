@@ -9,10 +9,9 @@ import { moveOpportunityFormAction } from "@/app/actions/pipeline";
 import { TASK_STATUS_LABELS, nextTaskStatus } from "@/lib/activity-logic";
 import { requirePermission } from "@/lib/auth";
 import { fullName } from "@/lib/crm";
-import { formatFc } from "@/lib/money";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getDefaultPipeline, getOpportunity, getPipelineOptions } from "@/lib/pipeline";
-import { stagePillClass, weightedAmount } from "@/lib/pipeline-logic";
+import { stagePillClass } from "@/lib/pipeline-logic";
 import type { Row } from "@/lib/prisma";
 
 export default async function OpportunityDetailPage({
@@ -74,16 +73,8 @@ export default async function OpportunityDetailPage({
                     </td>
                   </tr>
                   <tr>
-                    <td>Montant</td>
-                    <td>{formatFc(opportunity.amount)}</td>
-                  </tr>
-                  <tr>
                     <td>Probabilité</td>
                     <td>{opportunity.probability}%</td>
-                  </tr>
-                  <tr>
-                    <td>Valeur pondérée</td>
-                    <td>{formatFc(weightedAmount(opportunity.amount, opportunity.probability))}</td>
                   </tr>
                   <tr>
                     <td>Commercial</td>

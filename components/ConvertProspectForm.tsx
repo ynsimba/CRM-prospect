@@ -29,10 +29,6 @@ export default function ConvertProspectForm({
         <input name="name" required defaultValue={defaultName} />
       </label>
       <label className="login-field">
-        Montant (FC)
-        <input name="amount" required inputMode="numeric" placeholder="5 000 000" />
-      </label>
-      <label className="login-field">
         Étape
         <select name="stageId" defaultValue={defaultStage}>
           {openStages.map((stage) => (

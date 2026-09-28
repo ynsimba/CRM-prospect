@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ASSIGNABLE_ROLES } from "@/lib/roles";
-import { createUser, toggleUserActive } from "@/lib/users";
+import { createUser, deleteUser, toggleUserActive } from "@/lib/users";
 import { parseWelcomeCivility } from "@/lib/crm";
 
 export type UserFormState = {
@@ -63,4 +63,29 @@ export async function toggleUserAction(userId: string) {
   revalidatePath("/parametres");
   revalidatePath("/utilisateurs");
   revalidatePath("/equipe");
+}
+
+export async function deleteUserAction(_prev: UserFormState, formData: FormData): Promise<UserFormState> {
+  const session = await requirePermission(PERMISSIONS.usersManage);
+  const userId = String(formData.get("userId") ?? "");
+
+  try {
+    const user = await deleteUser(session, userId);
+    await auditAs(session, {
+      action: "user.delete",
+      entity: "User",
+      entityId: user.id,
+      summary: `Suppression du compte ${user.name} (${user.email})`,
+    });
+    revalidatePath("/parametres");
+    revalidatePath("/utilisateurs");
+    revalidatePath("/equipe");
+    revalidatePath("/direction/agents/liste");
+    revalidatePath("/prospects");
+    return { success: `${user.name} a été supprimé.` };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Impossible de supprimer l’utilisateur.",
+    };
+  }
 }

@@ -294,7 +294,6 @@ export const GOAL_METRICS = [
   { key: "meetings", target: "meetingsTarget", label: "RDV" },
   { key: "proposals", target: "proposalsTarget", label: "Propositions" },
   { key: "conversions", target: "conversionsTarget", label: "Conversions" },
-  { key: "revenue", target: "revenueTarget", label: "CA cible" },
 ] as const;
 
 export type GoalMetricKey = (typeof GOAL_METRICS)[number]["key"];
@@ -308,7 +307,6 @@ export function emptyTargets(): GoalTargets {
     meetingsTarget: 0,
     proposalsTarget: 0,
     conversionsTarget: 0,
-    revenueTarget: 0,
   };
 }
 
@@ -478,4 +476,27 @@ export function seniorityLabel(hiredAt: Date | null | undefined, now = new Date(
   const y = years ? `${years} an${years > 1 ? "s" : ""}` : "";
   const m = rest ? `${rest} mois` : "";
   return [y, m].filter(Boolean).join(" et ");
+}
+
+/* ------------------------------------------------------------------ pipeline summary */
+
+export type PipelineStageFigures = { isWon: boolean; isLost: boolean; probability: number; count: number; value: number };
+
+/** Headline figures for a pipeline board: open deals, raw and probability-weighted value, win rate. */
+export function pipelineSummary(columns: PipelineStageFigures[]) {
+  const open = columns.filter((column) => !column.isWon && !column.isLost);
+  const won = columns.filter((column) => column.isWon);
+  const lost = columns.filter((column) => column.isLost);
+  const sum = (items: PipelineStageFigures[], key: "count" | "value") => items.reduce((total, item) => total + item[key], 0);
+  const wonCount = sum(won, "count");
+  const lostCount = sum(lost, "count");
+  return {
+    openCount: sum(open, "count"),
+    openValue: sum(open, "value"),
+    weightedValue: Math.round(open.reduce((total, column) => total + (column.value * column.probability) / 100, 0)),
+    wonCount,
+    wonValue: sum(won, "value"),
+    lostCount,
+    winRate: rate(wonCount, wonCount + lostCount),
+  };
 }

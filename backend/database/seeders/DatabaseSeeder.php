@@ -55,13 +55,14 @@ class DatabaseSeeder extends Seeder
             ['email' => 'f.balumene@safecheck-rdc.com', 'name' => 'Françis BALUMENE', 'civility' => 'Mr', 'role' => 'MANAGER', 'password' => 'manager123'],
             ['email' => 'n.engani@safecheck-rdc.com', 'name' => 'Neisse ENGANI', 'civility' => 'Mme', 'role' => 'SALES', 'password' => 'jean123'],
             ['email' => 'n.kandolo@safecheck-rdc.com', 'name' => 'Naomie KANDOLO', 'civility' => 'Mme', 'role' => 'SALES', 'password' => 'marie123'],
+            ['email' => 'super@prospect.cd', 'name' => 'Super Admin', 'civility' => null, 'role' => 'SUPER_ADMIN', 'password' => 'super123'],
         ];
         foreach ($staff as $user) {
             User::query()->updateOrCreate(
                 ['organizationId' => $organization->id, 'email' => $user['email']],
                 [
                     'name' => $user['name'],
-                    'civility' => $user['civility'],
+                    'civility' => $user['civility'] ?? null,
                     'role' => $user['role'],
                     'passwordHash' => Hash::make($user['password']),
                     'isActive' => true,
@@ -69,19 +70,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $platform = Organization::query()->updateOrCreate(
-            ['slug' => 'prospect-saas'],
-            ['name' => 'Prospect CRM', 'currency' => 'CDF'],
-        );
-        User::query()->updateOrCreate(
-            ['organizationId' => $platform->id, 'email' => 'super@prospect.cd'],
-            [
-                'name' => 'Super Admin',
-                'role' => 'SUPER_ADMIN',
-                'passwordHash' => Hash::make('super123'),
-                'isActive' => true,
-            ],
-        );
     }
 
     private function defaults(string $organizationId): void

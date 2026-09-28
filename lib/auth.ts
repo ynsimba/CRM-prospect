@@ -58,9 +58,6 @@ export function isDirectorRole(role: SessionPayload["role"]) {
 
 export async function requireDirector() {
   const session = await requireSession();
-  if (session.role === "SUPER_ADMIN") {
-    redirect("/admin");
-  }
   if (!isDirectorRole(session.role)) {
     redirect("/interface");
   }
@@ -69,9 +66,6 @@ export async function requireDirector() {
 
 export async function requireCommercial() {
   const session = await requireSession();
-  if (session.role === "SUPER_ADMIN") {
-    redirect("/admin");
-  }
   if (!isSalesRole(session.role) && !isAdminRole(session.role)) {
     redirect("/direction");
   }

@@ -532,9 +532,19 @@ export type PipelineColumn = {
   name: string;
   isWon: boolean;
   isLost: boolean;
+  probability: number;
   count: number;
   value: number;
-  items: { id: string; name: string; amount: number; ownerName: string; company: string | null; prospectId: string | null }[];
+  items: {
+    id: string;
+    name: string;
+    amount: number;
+    ownerName: string;
+    company: string | null;
+    prospectId: string | null;
+    expectedCloseAt: Date | null;
+    updatedAt: Date;
+  }[];
 };
 
 export async function agentPipeline(scope: AgentScope, ownerIds: string[]): Promise<{ columns: PipelineColumn[]; total: number }> {
@@ -552,6 +562,8 @@ export async function agentPipeline(scope: AgentScope, ownerIds: string[]): Prom
       stageId: true,
       ownerId: true,
       prospectId: true,
+      expectedCloseAt: true,
+      updatedAt: true,
       owner: { select: { name: true } },
       company: { select: { name: true } },
     },
@@ -564,6 +576,7 @@ export async function agentPipeline(scope: AgentScope, ownerIds: string[]): Prom
       name: stage.name as string,
       isWon: Boolean(stage.isWon),
       isLost: Boolean(stage.isLost),
+      probability: Number(stage.probability ?? 0),
       count: items.length,
       value: items.reduce((sum: number, item: Row) => sum + Number(item.amount ?? 0), 0),
       items: items.map((item: Row) => ({
@@ -573,6 +586,8 @@ export async function agentPipeline(scope: AgentScope, ownerIds: string[]): Prom
         ownerName: (item.owner?.name as string | undefined) ?? "",
         company: (item.company?.name as string | undefined) ?? null,
         prospectId: (item.prospectId as string | null) ?? null,
+        expectedCloseAt: (item.expectedCloseAt as Date | null) ?? null,
+        updatedAt: item.updatedAt as Date,
       })),
     };
   });
@@ -643,7 +658,6 @@ export function achievedForGoals(perf: Performance, portfolioUntreatedHandled: n
     meetings: perf.activity.meetings,
     proposals: perf.activity.proposals,
     conversions: perf.results.conversions,
-    revenue: perf.results.revenue,
   } satisfies Record<(typeof GOAL_METRICS)[number]["key"], number>;
 }
 

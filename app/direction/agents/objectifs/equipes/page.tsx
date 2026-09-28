@@ -27,7 +27,6 @@ export default async function TeamGoalsPage({ searchParams }: { searchParams: Pr
               {GOAL_METRICS.map((metric) => (
                 <span key={metric.key}>
                   {metric.label}
-                  {metric.key === "revenue" ? " (FC)" : ""}
                 </span>
               ))}
               <span className="visually-hidden">Action</span>

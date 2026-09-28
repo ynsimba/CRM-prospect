@@ -16,7 +16,7 @@ export default async function IndividualGoalsPage({ searchParams }: { searchPara
       scope={scope}
       active="objectifs"
       title={`Objectifs individuels — ${monthLabel(year, month)}`}
-      subtitle="Prospects à traiter, appels, RDV, propositions, conversions et CA cible, par agent."
+      subtitle="Prospects à traiter, appels, RDV, propositions et conversions, par agent."
       actions={<MonthPicker year={year} month={month} />}
     >
       <article className="dash-card">
@@ -29,7 +29,6 @@ export default async function IndividualGoalsPage({ searchParams }: { searchPara
               {GOAL_METRICS.map((metric) => (
                 <span key={metric.key}>
                   {metric.label}
-                  {metric.key === "revenue" ? " (FC)" : ""}
                 </span>
               ))}
               <span className="visually-hidden">Action</span>

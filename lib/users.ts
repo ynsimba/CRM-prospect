@@ -85,3 +85,25 @@ export async function toggleUserActive(session: SessionPayload, userId: string) 
     data: { isActive: !user.isActive },
   });
 }
+
+export async function deleteUser(session: SessionPayload, userId: string) {
+  if (session.role !== Role.SUPER_ADMIN) {
+    throw new Error("Seul le super admin peut supprimer un utilisateur.");
+  }
+  if (userId === session.userId) {
+    throw new Error("Tu ne peux pas supprimer ton propre compte.");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId, organizationId: session.organizationId },
+  });
+  if (!user) {
+    throw new Error("Utilisateur introuvable.");
+  }
+  if (user.role === Role.SUPER_ADMIN) {
+    throw new Error("Ce compte ne peut pas être supprimé.");
+  }
+
+  await prisma.user.delete({ where: { id: user.id } });
+  return user;
+}

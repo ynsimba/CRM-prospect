@@ -16,8 +16,7 @@ export default async function Shell({
   } catch {
     // Les alertes de relance ne doivent pas bloquer les pages.
   }
-  const unreadCount =
-    session.role === "SUPER_ADMIN" ? 0 : await countUnreadNotifications(session);
+  const unreadCount = await countUnreadNotifications(session);
 
   return (
     <AppShell activeHref={activeHref} role={session.role} userName={session.name} unreadCount={unreadCount}>

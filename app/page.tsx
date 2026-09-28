@@ -18,7 +18,7 @@ function initialsFromName(name: string) {
 
 export default async function Home() {
   const session = await requireSession();
-  if (session.role === "SUPER_ADMIN" || session.role === "MANAGER") {
+  if (session.role === "MANAGER") {
     redirect(homePathForRole(session.role));
   }
 

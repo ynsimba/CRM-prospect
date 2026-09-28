@@ -13,6 +13,7 @@ import {
   pickAgent,
   pickByLoad,
   pickRoundRobin,
+  pipelineSummary,
   planDistribution,
   presence,
   rate,
@@ -171,4 +172,22 @@ test("ancienneté lisible", () => {
   assert.equal(seniorityLabel(new Date(Date.UTC(2025, 8, 28)), now), "1 an");
   assert.equal(seniorityLabel(new Date(Date.UTC(2026, 8, 10)), now), "Moins d’un mois");
   assert.equal(seniorityLabel(new Date(Date.UTC(2026, 10, 1)), now), "Arrivée prochaine");
+});
+
+test("synthèse du pipeline : pondération et taux de réussite", () => {
+  const summary = pipelineSummary([
+    { isWon: false, isLost: false, probability: 10, count: 2, value: 1000 },
+    { isWon: false, isLost: false, probability: 80, count: 1, value: 5000 },
+    { isWon: true, isLost: false, probability: 100, count: 3, value: 9000 },
+    { isWon: false, isLost: true, probability: 0, count: 1, value: 700 },
+  ]);
+  assert.deepEqual(summary, {
+    openCount: 3,
+    openValue: 6000,
+    weightedValue: 4100,
+    wonCount: 3,
+    wonValue: 9000,
+    lostCount: 1,
+    winRate: 75,
+  });
 });
