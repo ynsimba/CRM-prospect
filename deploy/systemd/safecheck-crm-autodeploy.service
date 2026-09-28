@@ -1,0 +1,8 @@
+[Unit]
+Description=Auto-déploiement SafeCom CRM
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /var/www/safecheck-crm/deploy/vps-autodeploy-check.sh
