@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  dailyNeeded,
   goalProgress,
+  goalStatus,
+  monthPace,
   matchZone,
   meetingsToday,
   nextMatricule,
@@ -14,10 +17,12 @@ import {
   presence,
   rate,
   relativeDayLabel,
+  seniorityLabel,
   shortAgentName,
   staleProspects,
   unansweredProposals,
   weekBuckets,
+  weeklyActivityTrend,
   type Candidate,
   type PortfolioProspect,
 } from "./agent-cockpit-logic";
@@ -128,4 +133,42 @@ test("périodes, présence et libellés", () => {
   assert.equal(nextMatricule(["AG-0003", null, "X-9", "AG-0010"]), "AG-0011");
   const weeks = weekBuckets([new Date(2026, 8, 28), new Date(2026, 8, 29), new Date(2026, 8, 21)], now, 2);
   assert.deepEqual(weeks.map((point) => point.value), [1, 2]);
+});
+
+test("tendance hebdomadaire par famille d’activité", () => {
+  const trend = weeklyActivityTrend(
+    [
+      { occurredAt: new Date(2026, 8, 28, 9), type: "CALL" },
+      { occurredAt: new Date(2026, 8, 29, 9), type: "WHATSAPP" },
+      { occurredAt: new Date(2026, 8, 22, 9), type: "PROPOSAL" },
+      { occurredAt: new Date(2026, 8, 23, 9), type: "NOTE" },
+      { occurredAt: new Date(2026, 5, 1, 9), type: "CALL" },
+    ],
+    now,
+    2,
+  );
+  assert.equal(trend.length, 2);
+  assert.deepEqual(trend[1].values, { calls: 1, emails: 1, meetings: 0, proposals: 0, other: 0 });
+  assert.deepEqual(trend[0].values, { calls: 0, emails: 0, meetings: 0, proposals: 1, other: 1 });
+  assert.match(trend[1].range, /28\/09/);
+});
+
+test("rythme mensuel des objectifs", () => {
+  const pace = monthPace(now); // 28 septembre (30 jours)
+  assert.deepEqual([pace.day, pace.daysInMonth, pace.remainingDays], [28, 30, 2]);
+  assert.equal(goalStatus(5, 0, 0.5), "none");
+  assert.equal(goalStatus(10, 10, 0.5), "done");
+  assert.equal(goalStatus(5, 10, 0.5), "on-track");
+  assert.equal(goalStatus(4, 10, 0.6), "at-risk");
+  assert.equal(goalStatus(1, 10, 0.6), "behind");
+  assert.equal(dailyNeeded(4, 10, 2), 2);
+  assert.equal(dailyNeeded(12, 10, 2), 0);
+});
+
+test("ancienneté lisible", () => {
+  assert.equal(seniorityLabel(null, now), null);
+  assert.equal(seniorityLabel(new Date(Date.UTC(2024, 5, 1)), now), "2 ans et 3 mois");
+  assert.equal(seniorityLabel(new Date(Date.UTC(2025, 8, 28)), now), "1 an");
+  assert.equal(seniorityLabel(new Date(Date.UTC(2026, 8, 10)), now), "Moins d’un mois");
+  assert.equal(seniorityLabel(new Date(Date.UTC(2026, 10, 1)), now), "Arrivée prochaine");
 });

@@ -396,3 +396,86 @@ export function shortAgentName(name: string) {
   const last = rest.join(" ");
   return last ? `${first} ${last.charAt(0).toUpperCase()}.` : first;
 }
+
+/** Weekly counts split by activity family, oldest week first (for the stacked trend chart). */
+export const TREND_SERIES = [
+  { key: "calls", label: "Appels", types: ["CALL"] },
+  { key: "emails", label: "E-mails", types: ["EMAIL", "WHATSAPP", "SMS"] },
+  { key: "meetings", label: "RDV", types: ["MEETING", "VISIT", "DEMO"] },
+  { key: "proposals", label: "Propositions", types: ["PROPOSAL"] },
+  { key: "other", label: "Autres", types: ["NOTE", "OTHER"] },
+] as const;
+
+export type TrendKey = (typeof TREND_SERIES)[number]["key"];
+export type TrendPoint = { label: string; range: string; values: Record<TrendKey, number> };
+
+export function weeklyActivityTrend(items: { occurredAt: Date; type: string }[], now = new Date(), weeks = 8): TrendPoint[] {
+  const current = weekStart(now);
+  const familyOf = new Map<string, TrendKey>();
+  for (const series of TREND_SERIES) for (const type of series.types) familyOf.set(type, series.key);
+  const points = Array.from({ length: weeks }, (_, index) => {
+    const start = new Date(current);
+    start.setDate(start.getDate() - 7 * (weeks - 1 - index));
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const fmt = (date: Date) => date.toLocaleDateString("fr-CD", { day: "2-digit", month: "2-digit" });
+    return {
+      key: dayKey(start),
+      label: `S${isoWeek(start)}`,
+      range: `${fmt(start)} – ${fmt(end)}`,
+      values: { calls: 0, emails: 0, meetings: 0, proposals: 0, other: 0 } as Record<TrendKey, number>,
+    };
+  });
+  const index = new Map(points.map((point, i) => [point.key, i]));
+  for (const item of items) {
+    const i = index.get(dayKey(weekStart(item.occurredAt)));
+    if (i === undefined) continue;
+    points[i].values[familyOf.get(item.type) ?? "other"] += 1;
+  }
+  return points.map(({ label, range, values }) => ({ label, range, values }));
+}
+
+/* ------------------------------------------------------------------ monthly goal pace */
+
+/** Where we are in the month: drives the « rythme attendu » marker on each goal. */
+export function monthPace(now = new Date()) {
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const day = now.getDate();
+  return { day, daysInMonth, remainingDays: daysInMonth - day, elapsed: day / daysInMonth };
+}
+
+export type GoalStatus = "none" | "done" | "on-track" | "at-risk" | "behind";
+
+/** Compares what is achieved with what should be achieved by today at a linear pace. */
+export function goalStatus(achieved: number, target: number, elapsed: number): GoalStatus {
+  if (!target) return "none";
+  if (achieved >= target) return "done";
+  const expected = target * Math.min(Math.max(elapsed, 0), 1);
+  if (expected <= 0) return "on-track";
+  const ratio = achieved / expected;
+  if (ratio >= 0.9) return "on-track";
+  if (ratio >= 0.6) return "at-risk";
+  return "behind";
+}
+
+/** Daily effort left to reach the target by month end (today included). */
+export function dailyNeeded(achieved: number, target: number, remainingDays: number) {
+  const left = Math.max(target - achieved, 0);
+  if (!left) return 0;
+  return Math.ceil(left / Math.max(remainingDays + 1, 1));
+}
+
+/** « 2 ans et 3 mois » since the hiring date (calendar date stored at UTC midnight). */
+export function seniorityLabel(hiredAt: Date | null | undefined, now = new Date()) {
+  if (!hiredAt) return null;
+  let months =
+    (now.getFullYear() - hiredAt.getUTCFullYear()) * 12 + (now.getMonth() - hiredAt.getUTCMonth());
+  if (now.getDate() < hiredAt.getUTCDate()) months -= 1;
+  if (months < 0) return "Arrivée prochaine";
+  if (months === 0) return "Moins d’un mois";
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  const y = years ? `${years} an${years > 1 ? "s" : ""}` : "";
+  const m = rest ? `${rest} mois` : "";
+  return [y, m].filter(Boolean).join(" et ");
+}

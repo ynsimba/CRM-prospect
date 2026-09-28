@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AgentDeleteForm from "@/components/AgentDeleteForm";
@@ -5,7 +6,8 @@ import AgentForm from "@/components/AgentForm";
 import AgendaList from "@/components/agents/AgendaList";
 import AgentsModule from "@/components/agents/AgentsModule";
 import GoalForm from "@/components/agents/GoalForm";
-import PerformancePanel from "@/components/agents/PerformancePanel";
+import GoalsBoard from "@/components/agents/GoalsBoard";
+import PerformanceDashboard from "@/components/agents/PerformanceDashboard";
 import PipelineBoard from "@/components/agents/PipelineBoard";
 import {
   AgentAvatar,
@@ -14,19 +16,20 @@ import {
   KpiTile,
   PeriodForm,
   PresenceDot,
-  ProgressBar,
   Timeline,
-  pct,
 } from "@/components/agents/ui";
 import { setAgentStatusAction, updateAgentAction } from "@/app/actions/agents";
 import {
   AGENT_STATUS_LABELS,
   AGENT_STATUS_PILL,
+  isUntreated,
   parsePeriod,
   presence,
+  seniorityLabel,
 } from "@/lib/agent-cockpit-logic";
 import {
   agendaFor,
+  activityTrendFor,
   agentPipeline,
   getAgentSheet,
   goalProgressFor,
@@ -61,7 +64,7 @@ export default async function AgentSheetPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ onglet?: string; periode?: string; statut?: string }>;
+  searchParams: Promise<{ onglet?: string; periode?: string; statut?: string; vue?: string }>;
 }) {
   const scope = await requireAgentScope();
   const { id } = await params;
@@ -109,11 +112,11 @@ export default async function AgentSheetPage({
           <PresenceDot value={presence(agent.lastSeenAt, now)} />
         </span>
         <div className="kpi-grid is-compact">
-          <KpiTile label="Portefeuille" value={metrics.portfolio} icon="bi-briefcase" accent="blue" />
-          <KpiTile label="À traiter" value={metrics.untreated} icon="bi-hourglass-split" accent="amber" alert={metrics.untreated > 0} />
-          <KpiTile label="Relances en retard" value={metrics.overdue} icon="bi-alarm" accent="red" alert={metrics.overdue > 0} />
-          <KpiTile label="RDV à venir" value={metrics.meetings} icon="bi-calendar-event" accent="violet" />
-          <KpiTile label="Opportunités" value={metrics.openOpportunities} icon="bi-kanban" accent="teal" />
+          <KpiTile label="Portefeuille" value={metrics.portfolio} icon="bi-briefcase" accent="blue" href={`/direction/agents/${agent.id}?onglet=portefeuille`} />
+          <KpiTile label="À traiter" value={metrics.untreated} icon="bi-hourglass-split" accent="amber" alert={metrics.untreated > 0} href={`/direction/agents/${agent.id}?onglet=portefeuille&vue=a-traiter`} />
+          <KpiTile label="Relances en retard" value={metrics.overdue} icon="bi-alarm" accent="red" alert={metrics.overdue > 0} href={`/direction/agents/${agent.id}?onglet=portefeuille&vue=relances`} />
+          <KpiTile label="RDV à venir" value={metrics.meetings} icon="bi-calendar-event" accent="violet" href={`/direction/agents/${agent.id}?onglet=agenda`} />
+          <KpiTile label="Opportunités" value={metrics.openOpportunities} icon="bi-kanban" accent="teal" href={`/direction/agents/${agent.id}?onglet=pipeline`} />
         </div>
       </div>
 
@@ -131,7 +134,7 @@ export default async function AgentSheetPage({
       </nav>
 
       {tab === "profil" ? <ProfileTab scope={scope} sheet={sheet} /> : null}
-      {tab === "portefeuille" ? <PortfolioTab sheet={sheet} statusFilter={query.statut} /> : null}
+      {tab === "portefeuille" ? <PortfolioTab sheet={sheet} statusFilter={query.statut} view={query.vue} /> : null}
       {tab === "pipeline" ? <PipelineTab scope={scope} agentId={agent.id} /> : null}
       {tab === "activites" ? <ActivityTab scope={scope} agentId={agent.id} /> : null}
       {tab === "agenda" ? <AgendaTab scope={scope} agentId={agent.id} /> : null}
@@ -145,43 +148,159 @@ export default async function AgentSheetPage({
 type Scope = Awaited<ReturnType<typeof requireAgentScope>>;
 type Sheet = NonNullable<Awaited<ReturnType<typeof getAgentSheet>>>;
 
+const STATUS_CHOICES = [
+  { status: "ACTIVE", label: "Actif", help: "Accès complet à son espace.", icon: "bi-check-circle", action: "Réactiver" },
+  { status: "SUSPENDED", label: "Suspendu", help: "Accès coupé temporairement.", icon: "bi-pause-circle", action: "Suspendre" },
+  { status: "INACTIVE", label: "Inactif", help: "Compte désactivé, historique conservé.", icon: "bi-x-circle", action: "Désactiver" },
+] as const;
+
+function FactRow({ icon, label, children }: { icon: string; label: string; children: ReactNode }) {
+  return (
+    <div className="profile-fact">
+      <span className="profile-fact-icon" aria-hidden>
+        <i className={`bi ${icon}`} />
+      </span>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
 async function ProfileTab({ scope, sheet }: { scope: Scope; sheet: Sheet }) {
-  const { agent } = sheet;
+  const { agent, metrics } = sheet;
   const [teams, zones, supervisors] = scope.canAdminister
     ? await Promise.all([listTeams(scope.session), listZones(scope), listSupervisors(scope)])
     : [[], [], []];
+  const seniority = seniorityLabel(agent.hiredAt);
+  const online = presence(agent.lastSeenAt);
+
   return (
-    <div className="agent-profile">
-      <article className="dash-card agent-profile-facts">
-        <h3>Informations RH</h3>
-        <dl className="fact-list">
-          <dt>Nom complet</dt>
-          <dd>
-            {agent.civility ? `${agent.civility} ` : ""}
-            {agent.name}
-          </dd>
-          <dt>Matricule</dt>
-          <dd>{agent.matricule ?? "—"}</dd>
-          <dt>Téléphone</dt>
-          <dd>{agent.phone ? <a href={`tel:${agent.phone.replace(/\s/g, "")}`}>{agent.phone}</a> : "—"}</dd>
-          <dt>E-mail professionnel</dt>
-          <dd>
-            <a href={`mailto:${agent.email}`}>{agent.email}</a>
-          </dd>
-          <dt>Fonction</dt>
-          <dd>{agent.jobTitle ?? "—"}</dd>
-          <dt>Date d’intégration</dt>
-          <dd>{formatCalendarDate(agent.hiredAt)}</dd>
-          <dt>Statut</dt>
-          <dd>
-            <span className={`status-pill ${AGENT_STATUS_PILL[agent.status]}`}>{AGENT_STATUS_LABELS[agent.status]}</span>
-          </dd>
-        </dl>
-      </article>
+    <div className={`profile-module ${scope.canAdminister ? "" : "is-readonly"}`}>
+      <aside className="profile-aside">
+        <article className="profile-card">
+          <div className="profile-cover" aria-hidden />
+          <div className="profile-identity">
+            <span className="profile-avatar agent-avatar-wrap">
+              <AgentAvatar name={agent.name} photoUrl={agent.photoUrl} size={92} />
+              <PresenceDot value={online} />
+            </span>
+            <h3 className="profile-name">
+              {agent.civility ? <span className="profile-civility">{agent.civility} </span> : null}
+              {agent.name}
+            </h3>
+            <p className="profile-role">{agent.jobTitle ?? ROLE_LABELS[agent.role]}</p>
+            <div className="profile-badges">
+              <span className={`status-pill ${AGENT_STATUS_PILL[agent.status]}`}>{AGENT_STATUS_LABELS[agent.status]}</span>
+              <span className="profile-chip">
+                <i className="bi bi-shield-check" aria-hidden /> {ROLE_LABELS[agent.role]}
+              </span>
+              {agent.team ? (
+                <span className="profile-chip">
+                  <i className="bi bi-people" aria-hidden /> {agent.team.name}
+                </span>
+              ) : null}
+            </div>
+            <div className="profile-actions">
+              {agent.phone ? (
+                <a className="profile-action" href={`tel:${agent.phone.replace(/\s/g, "")}`}>
+                  <i className="bi bi-telephone" aria-hidden /> Appeler
+                </a>
+              ) : (
+                <span className="profile-action is-disabled" aria-disabled="true">
+                  <i className="bi bi-telephone" aria-hidden /> Pas de numéro
+                </span>
+              )}
+              <a className="profile-action" href={`mailto:${agent.email}`}>
+                <i className="bi bi-envelope" aria-hidden /> E-mail
+              </a>
+            </div>
+          </div>
+          <dl className="profile-stats">
+            <div>
+              <dt>Ancienneté</dt>
+              <dd>{seniority ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>Portefeuille</dt>
+              <dd>
+                {metrics.portfolio} prospect{metrics.portfolio > 1 ? "s" : ""}
+              </dd>
+            </div>
+            <div>
+              <dt>Pipeline</dt>
+              <dd>{formatFc(metrics.pipelineValue)}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article className="dash-card profile-section">
+          <h3>
+            <i className="bi bi-person-vcard" aria-hidden /> Informations RH
+          </h3>
+          <dl className="profile-facts">
+            <FactRow icon="bi-hash" label="Matricule">
+              {agent.matricule ?? <span className="profile-empty">Non attribué</span>}
+            </FactRow>
+            <FactRow icon="bi-telephone" label="Téléphone">
+              {agent.phone ? <a href={`tel:${agent.phone.replace(/\s/g, "")}`}>{agent.phone}</a> : <span className="profile-empty">Non renseigné</span>}
+            </FactRow>
+            <FactRow icon="bi-envelope" label="E-mail professionnel">
+              <a href={`mailto:${agent.email}`}>{agent.email}</a>
+            </FactRow>
+            <FactRow icon="bi-briefcase" label="Fonction">
+              {agent.jobTitle ?? <span className="profile-empty">Non renseignée</span>}
+            </FactRow>
+            <FactRow icon="bi-calendar-check" label="Date d’intégration">
+              {agent.hiredAt ? (
+                <>
+                  {formatCalendarDate(agent.hiredAt)}
+                  {seniority ? <span className="profile-sub"> · {seniority}</span> : null}
+                </>
+              ) : (
+                <span className="profile-empty">Non renseignée</span>
+              )}
+            </FactRow>
+          </dl>
+        </article>
+
+        <article className="dash-card profile-section">
+          <h3>
+            <i className="bi bi-graph-up-arrow" aria-hidden /> Informations commerciales
+          </h3>
+          <dl className="profile-facts">
+            <FactRow icon="bi-shield-check" label="Rôle">
+              {ROLE_LABELS[agent.role]}
+            </FactRow>
+            <FactRow icon="bi-people" label="Équipe">
+              {agent.team?.name ?? <span className="profile-empty">Aucune</span>}
+            </FactRow>
+            <FactRow icon="bi-person-up" label="Responsable">
+              {agent.supervisor?.name ?? <span className="profile-empty">Aucun</span>}
+            </FactRow>
+            <FactRow icon="bi-geo-alt" label="Zone commerciale">
+              {agent.zone?.name ?? <span className="profile-empty">Aucune</span>}
+            </FactRow>
+            <FactRow icon="bi-clock-history" label="Dernière connexion">
+              {agent.lastLoginAt
+                ? agent.lastLoginAt.toLocaleString("fr-CD", { dateStyle: "medium", timeStyle: "short" })
+                : <span className="profile-empty">Jamais connecté</span>}
+            </FactRow>
+          </dl>
+        </article>
+      </aside>
+
       {scope.canAdminister ? (
-        <>
-          <article className="dash-card agent-profile-form">
-            <h3>Modifier la fiche</h3>
+        <div className="profile-main">
+          <article className="dash-card agent-profile-form profile-editor">
+            <header className="profile-editor-head">
+              <span className="profile-editor-icon" aria-hidden>
+                <i className="bi bi-pencil-square" />
+              </span>
+              <div>
+                <h3>Modifier la fiche</h3>
+                <p className="card-sub">Les changements s’appliquent immédiatement et sont tracés dans le journal.</p>
+              </div>
+            </header>
             <AgentForm
               action={updateAgentAction.bind(null, agent.id)}
               teams={teams.map((team) => ({ id: team.id as string, name: team.name as string }))}
@@ -205,48 +324,76 @@ async function ProfileTab({ scope, sheet }: { scope: Scope; sheet: Sheet }) {
               submitLabel="Enregistrer les modifications"
             />
           </article>
-          <div className="agent-profile-side">
-            <article className="dash-card">
-              <h3>Accès</h3>
-              <p className="card-sub">
-                Suspendre ou désactiver coupe l’accès. Le portefeuille et l’historique sont conservés.
-              </p>
-              <div className="status-actions">
-                {(["ACTIVE", "SUSPENDED", "INACTIVE"] as const)
-                  .filter((status) => status !== agent.status)
-                  .map((status) => (
-                    <form key={status} action={setAgentStatusAction.bind(null, agent.id, status)}>
-                      <button type="submit" className={status === "ACTIVE" ? "btn-download" : "btn-soft"}>
-                        {status === "ACTIVE" ? "Réactiver" : status === "SUSPENDED" ? "Suspendre" : "Désactiver"}
+
+          <div className="profile-admin-row">
+            <article className="dash-card profile-access">
+              <h3>
+                <i className="bi bi-key" aria-hidden /> Accès au compte
+              </h3>
+              <p className="card-sub">Le portefeuille et l’historique sont toujours conservés.</p>
+              <div className="status-choices">
+                {STATUS_CHOICES.map((choice) =>
+                  choice.status === agent.status ? (
+                    <div key={choice.status} className={`status-choice is-current is-${choice.status.toLowerCase()}`} aria-current="true">
+                      <i className={`bi ${choice.icon}`} aria-hidden />
+                      <span>
+                        <strong>{choice.label}</strong>
+                        <small>{choice.help}</small>
+                      </span>
+                      <span className="status-choice-tag">Actuel</span>
+                    </div>
+                  ) : (
+                    <form key={choice.status} action={setAgentStatusAction.bind(null, agent.id, choice.status)}>
+                      <button type="submit" className={`status-choice is-${choice.status.toLowerCase()}`}>
+                        <i className={`bi ${choice.icon}`} aria-hidden />
+                        <span>
+                          <strong>{choice.action}</strong>
+                          <small>{choice.help}</small>
+                        </span>
+                        <i className="bi bi-chevron-right status-choice-go" aria-hidden />
                       </button>
                     </form>
-                  ))}
+                  ),
+                )}
               </div>
             </article>
-            <article className="dash-card agent-danger">
-              <h3>Supprimer</h3>
-              <p className="card-sub">Possible seulement sans activité ni tâche. Sinon, désactive l’agent.</p>
+
+            <article className="dash-card profile-danger">
+              <h3>
+                <i className="bi bi-exclamation-octagon" aria-hidden /> Zone de suppression
+              </h3>
+              <p className="card-sub">
+                Suppression définitive, possible seulement si l’agent n’a ni activité ni tâche. Sinon, désactive-le.
+              </p>
               <AgentDeleteForm agentId={agent.id} agentName={agent.name} />
             </article>
           </div>
-        </>
+        </div>
       ) : null}
     </div>
   );
 }
 
-function PortfolioTab({ sheet, statusFilter }: { sheet: Sheet; statusFilter?: string }) {
+function PortfolioTab({ sheet, statusFilter, view }: { sheet: Sheet; statusFilter?: string; view?: string }) {
   const all = portfolioRows(sheet);
-  const statuses = [...new Set(all.map((row) => row.prospect.statusName))];
-  const rows = statusFilter ? all.filter((row) => row.prospect.statusName === statusFilter) : all;
+  const scoped =
+    view === "a-traiter"
+      ? all.filter((row) => isUntreated(row.prospect))
+      : view === "relances"
+        ? all.filter((row) => row.nextAction?.overdue)
+        : all;
+  const heading = view === "a-traiter" ? "Prospects à traiter" : view === "relances" ? "Relances en retard" : "Portefeuille prospects";
+  const statuses = [...new Set(scoped.map((row) => row.prospect.statusName))];
+  const rows = statusFilter ? scoped.filter((row) => row.prospect.statusName === statusFilter) : scoped;
   return (
     <article className="dash-card">
       <div className="card-head-row">
         <h3>
-          Portefeuille prospects <span className="muted-line">({rows.length})</span>
+          {heading} <span className="muted-line">({rows.length})</span>
         </h3>
         <form method="get" className="cockpit-filters is-inline">
           <input type="hidden" name="onglet" value="portefeuille" />
+          {view === "a-traiter" || view === "relances" ? <input type="hidden" name="vue" value={view} /> : null}
           <label className="cockpit-filter">
             <span className="visually-hidden">Statut</span>
             <select name="statut" defaultValue={statusFilter ?? ""}>
@@ -346,31 +493,20 @@ async function GoalsTab({ scope, agentId }: { scope: Scope; agentId: string }) {
   const progress = await goalProgressFor(scope, agentId);
   const monthLabel = new Date(progress.year, progress.month - 1, 1).toLocaleDateString("fr-CD", { month: "long", year: "numeric" });
   return (
-    <div className="row g-3">
-      <div className="col-12 col-xl-7">
-        <article className="dash-card h-100">
-          <h3>Objectif / Réalisé / Progression — {monthLabel}</h3>
-          <ul className="goal-progress-list">
-            {progress.rows.map((row) => (
-              <li key={row.key}>
-                <span className="goal-progress-label">{row.label}</span>
-                <span className="goal-progress-figures">
-                  {row.key === "revenue" ? formatFc(row.achieved) : row.achieved} /{" "}
-                  {row.target ? (row.key === "revenue" ? formatFc(row.target) : row.target) : "—"}
-                  {row.pct !== null ? <strong> — {pct(row.pct)}</strong> : null}
-                </span>
-                <ProgressBar pct={row.pct} label={`${row.label} : ${row.pct ?? 0} %`} />
-              </li>
-            ))}
-          </ul>
-        </article>
-      </div>
-      <div className="col-12 col-xl-5">
-        <article className="dash-card h-100">
-          <h3>Définir les objectifs de {monthLabel}</h3>
-          <GoalForm owner={{ userId: agentId }} year={progress.year} month={progress.month} targets={progress.targets} />
-        </article>
-      </div>
+    <div className="goals-module">
+      <GoalsBoard rows={progress.rows} monthLabel={monthLabel} />
+      <article className="dash-card goal-editor" id="definir-objectifs">
+        <header className="goal-editor-head">
+          <span className="goal-editor-icon" aria-hidden>
+            <i className="bi bi-bullseye" />
+          </span>
+          <div>
+            <h3>Définir les objectifs de {monthLabel}</h3>
+            <p className="card-sub">Laisse à 0 un indicateur que tu ne veux pas suivre ce mois-ci.</p>
+          </div>
+        </header>
+        <GoalForm owner={{ userId: agentId }} year={progress.year} month={progress.month} targets={progress.targets} />
+      </article>
     </div>
   );
 }
@@ -387,7 +523,11 @@ async function PerformanceTab({ scope, sheet, period }: { scope: Scope; sheet: S
         </p>
         <PeriodForm period={period} hidden={{ onglet: "performance" }} />
       </div>
-      <PerformancePanel perf={perf} goals={goals} />
+      <PerformanceDashboard
+        data={{ activity: perf.activity, results: { qualified: perf.results.qualified, opportunities: perf.results.opportunities }, ratios: perf.ratios }}
+        goals={goals}
+        trend={activityTrendFor(sheet.agent.id, sheet.data)}
+      />
     </>
   );
 }

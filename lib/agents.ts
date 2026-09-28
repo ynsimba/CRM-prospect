@@ -29,6 +29,7 @@ import {
   unansweredProposals,
   upcomingMeetings,
   weekBuckets,
+  weeklyActivityTrend,
   type AgendaTask,
   type Candidate,
   type GoalTargets,
@@ -625,6 +626,14 @@ export function performanceFor(agentId: string, data: Dataset, range: { from: Da
 }
 
 export type Performance = ReturnType<typeof performanceFor>;
+
+/** Last 8 weeks of the agent's interactions by family, for the performance trend chart. */
+export function activityTrendFor(agentId: string, data: Dataset, now = new Date()) {
+  return weeklyActivityTrend(
+    data.activities.filter((item) => item.userId === agentId),
+    now,
+  );
+}
 
 /** Achieved figures compared with the goal metrics of the spec (§7). */
 export function achievedForGoals(perf: Performance, portfolioUntreatedHandled: number) {
