@@ -77,7 +77,7 @@ echo "==> Services"
 install -m 644 "$APP_ROOT/deploy/systemd/safecheck-crm-autodeploy.service" /etc/systemd/system/safecheck-crm-autodeploy.service
 install -m 644 "$APP_ROOT/deploy/systemd/safecheck-crm-autodeploy.timer" /etc/systemd/system/safecheck-crm-autodeploy.timer
 systemctl daemon-reload
-systemctl enable safecheck-crm-autodeploy.timer
+systemctl enable --now safecheck-crm-autodeploy.timer
 systemctl restart safecheck-crm.service
 systemctl reload php8.4-fpm
 systemctl reload nginx
