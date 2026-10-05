@@ -2,11 +2,12 @@
 
 import { ProspectPriority } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
 import { emptyToNull, parseCivility, parsePersonCategory, readOptionalId } from "@/lib/crm";
 import { PERMISSIONS } from "@/lib/permissions";
-import { createProspect, updateProspectRow, updateProspectStatus } from "@/lib/prospects";
+import { createProspect, updateProspectRow, updateProspectStatus, updateProspectProfile } from "@/lib/prospects";
 
 export type ProspectFormState = {
   error?: string;
@@ -76,12 +77,13 @@ export async function createProspectAction(
     revalidatePath("/");
     revalidatePath("/rapports");
     revalidatePath("/notifications");
-    return { success: `${label} a été ajouté.` };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Impossible de créer le prospect.",
     };
   }
+
+  redirect("/prospects?created=1");
 }
 
 export async function updateProspectStatusAction(prospectId: string, formData: FormData) {
@@ -151,4 +153,65 @@ export async function updateProspectRowAction(prospectId: string, formData: Form
   revalidatePath("/direction");
   revalidatePath("/direction/prospects");
   revalidatePath("/");
+}
+
+export async function updateProspectProfileAction(
+  prospectId: string,
+  _prev: ProspectFormState,
+  formData: FormData,
+): Promise<ProspectFormState> {
+  const session = await requirePermission(PERMISSIONS.prospectsManage);
+
+  function readDate(value: FormDataEntryValue | null) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return null;
+    const date = new Date(`${raw}T09:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  try {
+    const patch: Parameters<typeof updateProspectProfile>[2] = {};
+    const textFields = [
+      "jobTitle",
+      "email",
+      "phone",
+      "whatsapp",
+      "city",
+      "address",
+      "industry",
+      "companySize",
+      "notes",
+    ] as const;
+    for (const field of textFields) {
+      if (formData.has(field)) {
+        patch[field] = emptyToNull(formData.get(field));
+      }
+    }
+    if (formData.has("firstContactAt")) {
+      patch.firstContactAt = readDate(formData.get("firstContactAt"));
+    }
+    if (formData.has("nextContactAt")) {
+      patch.nextContactAt = readDate(formData.get("nextContactAt"));
+    }
+
+    const prospect = await updateProspectProfile(session, prospectId, patch);
+    await auditAs(session, {
+      action: "prospect.profile",
+      entity: "Prospect",
+      entityId: prospect.id,
+      summary: `Complément de fiche ${prospect.firstName} ${prospect.lastName}`,
+    });
+    revalidatePath("/prospects");
+    revalidatePath(`/prospects/${prospect.id}`);
+    revalidatePath("/suivi");
+    revalidatePath("/interface");
+    revalidatePath("/direction");
+    revalidatePath("/direction/prospects");
+    revalidatePath("/");
+    return { success: "Fiche mise à jour avec succès." };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Impossible de mettre à jour la fiche.",
+    };
+  }
 }

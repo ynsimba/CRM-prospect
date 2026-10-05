@@ -1,6 +1,8 @@
 import Shell from "@/components/Shell";
+import CreatedProspectToast from "@/components/CreatedProspectToast";
 import ProspectGrid from "@/components/ProspectGrid";
 import ProspectQueryBar from "@/components/ProspectQueryBar";
+import { Suspense } from "react";
 import { requirePermission } from "@/lib/auth";
 import { parseProspectFilters } from "@/lib/crm";
 import { getCrmOptions } from "@/lib/options";
@@ -40,7 +42,7 @@ export default async function ProspectsPage({
     meeting?: string;
     notes?: string;
     followUp?: string;
-    pin?: string;
+    created?: string;
   }>;
 }) {
   const session = await requirePermission(PERMISSIONS.prospectsRead);
@@ -71,7 +73,6 @@ export default async function ProspectsPage({
     meeting: params.meeting,
     notes: params.notes,
     followUp: params.followUp,
-    pin: params.pin,
   };
   const [prospects, options] = await Promise.all([
     listProspects(session, {
@@ -106,6 +107,9 @@ export default async function ProspectsPage({
 
   return (
     <Shell activeHref="/prospects">
+      <Suspense fallback={null}>
+        <CreatedProspectToast />
+      </Suspense>
       <ProspectQueryBar
         query={query}
         view={view}

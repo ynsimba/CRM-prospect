@@ -20,7 +20,7 @@ export default function CompanyNameField({
     if (needle.length < 2) return [];
     return companies.filter((item) => item.name.toLowerCase().includes(needle)).slice(0, 6);
   }, [companies, needle]);
-  const exact = companies.find((item) => item.name.toLowerCase() === needle);
+  const exact = needle.length >= 2 ? companies.find((item) => item.name.toLowerCase() === needle) : undefined;
 
   return (
     <div className="login-field">
@@ -36,15 +36,17 @@ export default function CompanyNameField({
         required
         value={name}
         onChange={(event) => {
-          setName(event.target.value);
-          setCompanyId("");
+          const next = event.target.value;
+          setName(next);
+          const match = companies.find((item) => item.name.toLowerCase() === next.trim().toLowerCase());
+          setCompanyId(match?.id ?? "");
         }}
         placeholder="Rechercher ou saisir une entreprise"
         autoComplete="off"
       />
       <input type="hidden" name="companyId" value={companyId} />
-      {exact && !companyId ? (
-        <p className="login-error">Cette entreprise existe déjà. Sélectionnez-la ci-dessous pour ouvrir la fiche existante.</p>
+      {exact && companyId === exact.id ? (
+        <p className="muted-line">Entreprise déjà connue : le prospect sera lié à cette fiche.</p>
       ) : null}
       {matches.length > 0 ? (
         <div className="search-select-options" style={{ position: "static", marginTop: 8 }}>

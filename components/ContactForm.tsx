@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createContactAction, type ContactFormState } from "@/app/actions/contacts";
 import { CIVILITIES, PERSON_CATEGORIES } from "@/lib/crm";
 
@@ -14,6 +14,9 @@ type ContactFormProps = {
 
 export default function ContactForm({ companies, defaultCompanyId, defaultCategory = "contact" }: ContactFormProps) {
   const [state, formAction, pending] = useActionState(createContactAction, initialState);
+  const [category, setCategory] = useState(defaultCategory);
+  const isPorteur = category === "porteur";
+  const companyRequired = !isPorteur && !defaultCompanyId;
 
   return (
     <form action={formAction} className="product-form contact-form">
@@ -46,7 +49,7 @@ export default function ContactForm({ companies, defaultCompanyId, defaultCatego
         </label>
         <label className="login-field">
           Catégorie
-          <select name="category" defaultValue={defaultCategory}>
+          <select name="category" value={category} onChange={(event) => setCategory(event.target.value)}>
             {PERSON_CATEGORIES.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
@@ -57,9 +60,19 @@ export default function ContactForm({ companies, defaultCompanyId, defaultCatego
       </div>
 
       <label className="login-field">
-        Entreprise
-        <select name="companyId" defaultValue={defaultCompanyId ?? ""}>
-          <option value="">Sans entreprise</option>
+        <span>
+          Entreprise
+          {isPorteur ? (
+            <span className="muted-line"> Optionnel pour un porteur de projet</span>
+          ) : (
+            <span className="req" aria-hidden>
+              {" "}
+              *
+            </span>
+          )}
+        </span>
+        <select name="companyId" defaultValue={defaultCompanyId ?? ""} required={companyRequired}>
+          <option value="">{isPorteur ? "Sans entreprise" : "Choisir une entreprise"}</option>
           {companies.map((company) => (
             <option key={company.id} value={company.id}>
               {company.name}
@@ -99,7 +112,7 @@ export default function ContactForm({ companies, defaultCompanyId, defaultCatego
       {state.success ? <p className="form-success">{state.success}</p> : null}
       <div className="form-actions">
         <button type="submit" className="btn-download" disabled={pending}>
-          {pending ? "Enregistrement…" : "Ajouter le contact"}
+          {pending ? "Enregistrement…" : isPorteur ? "Ajouter le porteur" : "Ajouter le contact"}
         </button>
       </div>
     </form>

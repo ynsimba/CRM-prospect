@@ -66,7 +66,10 @@ export async function createContact(
   if (!firstName || !lastName) {
     throw new Error("Le prénom et le nom sont requis.");
   }
-  if (!input.companyId) {
+
+  const category = input.category ?? "contact";
+  const isPorteur = category === "porteur";
+  if (!input.companyId && !isPorteur) {
     throw new Error("Un contact doit être rattaché à une entreprise.");
   }
 
@@ -83,7 +86,7 @@ export async function createContact(
   return prisma.contact.create({
     data: {
       organizationId: session.organizationId,
-      displayCode: await nextDisplayCode(session.organizationId, "CTC"),
+      displayCode: await nextDisplayCode(session.organizationId, isPorteur ? "POR" : "CTC"),
       ownerId: session.userId,
       firstName,
       lastName,
@@ -93,8 +96,8 @@ export async function createContact(
       phone: input.phone,
       whatsapp: input.whatsapp,
       linkedin: input.linkedin,
-      category: input.category,
-      companyId: input.companyId,
+      category,
+      companyId: input.companyId ?? null,
       notes: input.notes,
     },
   });

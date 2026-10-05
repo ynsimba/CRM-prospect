@@ -4,6 +4,7 @@ import Shell from "@/components/Shell";
 import ConvertProspectForm from "@/components/ConvertProspectForm";
 import ActivityForm from "@/components/ActivityForm";
 import ActivityTimeline from "@/components/ActivityTimeline";
+import ProspectEditModal from "@/components/ProspectEditModal";
 import TaskForm from "@/components/TaskForm";
 import { advanceTaskAction } from "@/app/actions/activities";
 import { updateProspectStatusAction } from "@/app/actions/prospects";
@@ -21,6 +22,12 @@ import {
 import { getCrmOptions } from "@/lib/options";
 import { PERMISSIONS, roleHasPermission } from "@/lib/permissions";
 import { getDefaultPipeline } from "@/lib/pipeline";
+import {
+  canFullyEditProspect,
+  isProspectIncomplete,
+  lockedProspectFields,
+  type ProspectProfileField,
+} from "@/lib/prospect-edit-policy";
 import { getProspect } from "@/lib/prospects";
 import type { Row } from "@/lib/prisma";
 
@@ -46,6 +53,23 @@ export default async function ProspectDetailPage({
   const hasOpenOpportunity = prospect.opportunities.some((item: Row) => item.status === "OPEN");
   const pipelineStages = pipeline?.stages ?? [];
   const wa = prospect.whatsapp ? whatsappHref(prospect.whatsapp) : null;
+  const profileValues: Record<ProspectProfileField, string | Date | null> = {
+    jobTitle: prospect.jobTitle,
+    email: prospect.email,
+    phone: prospect.phone,
+    whatsapp: prospect.whatsapp,
+    city: prospect.city,
+    address: prospect.address,
+    industry: prospect.industry,
+    companySize: prospect.companySize,
+    notes: prospect.notes,
+    firstContactAt: prospect.firstContactAt,
+    nextContactAt: prospect.nextContactAt,
+  };
+  const fullEdit = canFullyEditProspect(session.role);
+  const incomplete = isProspectIncomplete(profileValues);
+  const lockedFields = lockedProspectFields(session.role, profileValues);
+  const canEditProfile = canManage && (fullEdit || incomplete);
   const scoreDetail = computeProspectScore({
     email: prospect.email,
     phone: prospect.phone,
@@ -68,6 +92,7 @@ export default async function ProspectDetailPage({
           <p className="card-sub">
             {prospect.jobTitle ?? "Prospect"}
             {prospect.company ? ` · ${prospect.company.name}` : ""}
+            {incomplete ? " · Fiche incomplète" : ""}
           </p>
         </div>
         <Link href="/prospects" className="table-action">
@@ -77,8 +102,18 @@ export default async function ProspectDetailPage({
 
       <div className="row g-3">
         <div className="col-12 col-xl-8">
-          <article className="dash-card">
-            <h3>Fiche</h3>
+          <article className="dash-card prospect-sheet-card">
+            <div className="card-head-row">
+              <h3>Fiche</h3>
+              {canEditProfile ? (
+                <ProspectEditModal
+                  prospectId={prospect.id}
+                  values={profileValues}
+                  lockedFields={lockedFields}
+                  fullEdit={fullEdit}
+                />
+              ) : null}
+            </div>
             <div className="table-wrap">
               <table className="data-table">
                 <tbody>

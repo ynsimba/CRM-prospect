@@ -3474,6 +3474,139 @@ html.theme-dim .cal-pop-day.is-muted,
   font-size: 0.82rem;
 }
 
+.prospect-edit-form {
+  margin-top: 4px;
+  gap: 14px;
+}
+
+.prospect-edit-filled {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--muted));
+  border: 1px solid var(--line);
+}
+
+.prospect-edit-filled-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.prospect-edit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prospect-edit-chips li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.prospect-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.prospect-edit-fields > .span-2 {
+  grid-column: 1 / -1;
+}
+
+.prospect-edit-form .prospect-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.prospect-edit-form .prospect-form-footer .btn-download {
+  min-width: 180px;
+}
+
+@media (max-width: 700px) {
+  .prospect-edit-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(18, 38, 20, 0.18);
+  font-size: 0.92rem;
+  font-weight: 600;
+  animation: app-toast-in 0.28s ease;
+}
+
+.app-toast.is-success {
+  background: #e8f6ea;
+  color: #1f6b2c;
+  border: 1px solid #b7e0be;
+}
+
+.app-toast.is-error {
+  background: #fdecea;
+  color: #9b2c2c;
+  border: 1px solid #f0b4b4;
+}
+
+.app-toast-close {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.app-toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes app-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .app-toast {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}
+
 .empty-copy {
   margin: 0;
   color: var(--muted);
@@ -7274,6 +7407,20 @@ html.theme-dim .goal-editor-icon, .theme-dim .goal-editor-icon { color: #9fd18e;
 .profile-edit:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
+}
+
+.prospect-sheet-card {
+  position: relative;
+}
+
+.prospect-sheet-card > .card-head-row {
+  margin-bottom: 12px;
+}
+
+.prospect-sheet-card > .card-head-row .profile-edit {
+  position: static;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+  border: 1px solid var(--line);
 }
 
 .profile-cover {

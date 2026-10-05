@@ -11,9 +11,7 @@ import {
   GRID_COL_WIDTHS,
   formatShortDate,
   gridColumnOptions,
-  parsePinnedColumn,
   prospectListHref,
-  stickyColumnStyle,
   toDateInput,
   type GridColumnKey,
   type GridFilterOption,
@@ -78,16 +76,13 @@ export default function ProspectGrid({
   const commercial = variant === "commercial";
   const source = filterSource ?? rows;
   const filterable = Boolean(query);
-  const pin = parsePinnedColumn(query?.pin);
 
   function col(column: GridColumnKey) {
-    const freeze = commercial ? stickyColumnStyle(column, pin) : { sticky: false, edge: false, left: 0 };
     return {
-      className: `col-${column}${freeze.sticky ? " is-sticky" : ""}${freeze.edge ? " is-pin-edge" : ""}`,
+      className: `col-${column}`,
       style: {
         width: GRID_COL_WIDTHS[column],
         minWidth: GRID_COL_WIDTHS[column],
-        ...(freeze.sticky ? { left: freeze.left } : {}),
       },
     };
   }
@@ -109,7 +104,6 @@ export default function ProspectGrid({
         query={query}
         sort={sort ?? "updated"}
         dir={dir ?? "desc"}
-        pin={pin}
         options={gridColumnOptions(column.filter, source, extras)}
         colProps={colProps}
       />
@@ -310,7 +304,6 @@ function ColumnHead({
   query,
   sort,
   dir,
-  pin,
   options,
   colProps,
 }: {
@@ -318,7 +311,6 @@ function ColumnHead({
   query: Record<string, string | undefined>;
   sort: string;
   dir: "asc" | "desc";
-  pin: string;
   options: GridFilterOption[];
   colProps: { className: string; style: CSSProperties };
 }) {
@@ -326,17 +318,15 @@ function ColumnHead({
   const activeFilter = filterKey ? query[filterKey] : undefined;
   const sorted = sort === column.sort;
   const dated = column.sort === "lastAction" || column.sort === "meeting";
-  const pinnedHere = pin === column.key;
 
   return (
     <th
-      className={`grid-th${activeFilter || sorted || pinnedHere ? " is-active" : ""} ${colProps.className}`}
+      className={`grid-th${activeFilter || sorted ? " is-active" : ""} ${colProps.className}`}
       style={colProps.style}
     >
       <details className="grid-th-pop" name="prospect-col">
         <summary aria-label={`Filtrer ${column.label}`}>
           <span>{column.label}</span>
-          {pinnedHere ? <i className="bi bi-pin-angle-fill" aria-hidden /> : null}
           <i
             className={`bi ${sorted ? (dir === "asc" ? "bi-caret-up-fill" : "bi-caret-down-fill") : "bi-chevron-down"}`}
             aria-hidden
@@ -373,16 +363,6 @@ function ColumnHead({
           >
             {dated ? "Plus récent" : "Trier Z → A"}
           </Link>
-          <p className="grid-th-sort-label">Colonne</p>
-          {pinnedHere ? (
-            <Link href={prospectListHref(query, { pin: "off" })} className="is-current">
-              Ne plus figer
-            </Link>
-          ) : (
-            <Link href={prospectListHref(query, { pin: column.key })}>
-              Figer jusqu’ici
-            </Link>
-          )}
         </div>
       </details>
     </th>

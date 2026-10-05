@@ -13,6 +13,10 @@ import { findCompanyByName } from "@/lib/companies";
 import { nextDisplayCode, notifyDirectorsOfFinalStatus, recordStatusHistory } from "@/lib/status-history";
 import { isSalesRole } from "@/lib/roles";
 import { autoAssignNewProspect, recordOwnerChange } from "@/lib/agents";
+import {
+  filterProspectProfilePatch,
+  type ProspectProfileValues,
+} from "@/lib/prospect-edit-policy";
 
 export type { ProspectFilters };
 
@@ -179,35 +183,34 @@ export async function createProspect(
   if (companyId) {
     const company = await prisma.company.findFirst({
       where: { id: companyId, ...orgScope(session) },
-      select: { id: true, name: true, displayCode: true, prospects: { select: { id: true }, take: 1 } },
+      select: { id: true, name: true, displayCode: true },
     });
     if (!company) {
       throw new Error("Entreprise introuvable.");
     }
-    if (company.prospects.length > 0) {
-      throw new Error(`Cette entreprise existe déjà : ${company.name}. Ouvrez la fiche existante.`);
-    }
     displayCode = company.displayCode ?? undefined;
   } else if (companyName) {
-    const duplicate = await findCompanyByName(session, companyName);
-    if (duplicate) {
-      throw new Error(`Cette entreprise existe déjà : ${duplicate.name}. Recherchez-la dans le formulaire.`);
+    const existing = await findCompanyByName(session, companyName);
+    if (existing) {
+      companyId = existing.id;
+      displayCode = existing.displayCode ?? undefined;
+    } else {
+      displayCode = await nextDisplayCode(session.organizationId, "ENT");
+      const company = await prisma.company.create({
+        data: {
+          organizationId: session.organizationId,
+          displayCode,
+          ownerId: input.ownerId ?? session.userId,
+          name: companyName,
+          industry: input.industry,
+          city: input.city,
+          address: input.address,
+          size: input.companySize,
+          country: "RD Congo",
+        },
+      });
+      companyId = company.id;
     }
-    displayCode = await nextDisplayCode(session.organizationId, "ENT");
-    const company = await prisma.company.create({
-      data: {
-        organizationId: session.organizationId,
-        displayCode,
-        ownerId: input.ownerId ?? session.userId,
-        name: companyName,
-        industry: input.industry,
-        city: input.city,
-        address: input.address,
-        size: input.companySize,
-        country: "RD Congo",
-      },
-    });
-    companyId = company.id;
   }
 
   const firstName = input.firstName?.trim() || companyName || "";
@@ -384,6 +387,20 @@ export async function updateProspectRow(
     throw new Error("Seul le directeur peut réassigner un prospect.");
   }
 
+  if (isSalesRole(session.role)) {
+    filterProspectProfilePatch(
+      session.role,
+      {
+        notes: prospect.notes,
+        nextContactAt: prospect.nextContactAt,
+      },
+      {
+        ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        ...(input.nextContactAt !== undefined ? { nextContactAt: input.nextContactAt } : {}),
+      },
+    );
+  }
+
   let status = prospect.status;
   if (input.statusId && input.statusId !== prospect.statusId) {
     const next = await prisma.prospectStatus.findFirst({
@@ -454,6 +471,70 @@ export async function updateProspectRow(
       comment: nextComment,
       ownerName: updated.owner?.name,
     });
+  }
+
+  await refreshProspectScore(session, updated.id);
+  return updated;
+}
+
+export async function updateProspectProfile(
+  session: SessionPayload,
+  prospectId: string,
+  input: ProspectProfileValues,
+) {
+  const prospect = await prisma.prospect.findFirst({
+    where: {
+      id: prospectId,
+      ...orgScope(session),
+      ...ownedScope(session),
+    },
+  });
+  if (!prospect) {
+    throw new Error("Prospect introuvable.");
+  }
+
+  const current: ProspectProfileValues = {
+    jobTitle: prospect.jobTitle,
+    email: prospect.email,
+    phone: prospect.phone,
+    whatsapp: prospect.whatsapp,
+    city: prospect.city,
+    address: prospect.address,
+    industry: prospect.industry,
+    companySize: prospect.companySize,
+    notes: prospect.notes,
+    firstContactAt: prospect.firstContactAt,
+    nextContactAt: prospect.nextContactAt,
+  };
+
+  const allowed = filterProspectProfilePatch(session.role, current, input);
+  if (Object.keys(allowed).length === 0) {
+    throw new Error("Aucun champ à mettre à jour.");
+  }
+
+  const data: Record<string, string | Date | null> = {};
+  for (const [key, value] of Object.entries(allowed)) {
+    data[key] = value === undefined ? null : (value as string | Date | null);
+  }
+  data.lastActionAt = new Date();
+
+  const updated = await prisma.prospect.update({
+    where: { id: prospect.id },
+    data,
+  });
+
+  if (prospect.companyId) {
+    const companyPatch: Record<string, string | null> = {};
+    if (allowed.industry !== undefined) companyPatch.industry = (allowed.industry as string | null) ?? null;
+    if (allowed.city !== undefined) companyPatch.city = (allowed.city as string | null) ?? null;
+    if (allowed.address !== undefined) companyPatch.address = (allowed.address as string | null) ?? null;
+    if (allowed.companySize !== undefined) companyPatch.size = (allowed.companySize as string | null) ?? null;
+    if (Object.keys(companyPatch).length > 0) {
+      await prisma.company.update({
+        where: { id: prospect.companyId },
+        data: companyPatch,
+      });
+    }
   }
 
   await refreshProspectScore(session, updated.id);

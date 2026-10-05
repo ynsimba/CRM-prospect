@@ -7,6 +7,7 @@ import { initialsFromName } from "@/lib/crm";
 import { toDateInput } from "@/lib/prospect-list-logic";
 import CompanyNameField from "@/components/CompanyNameField";
 import DateField from "@/components/DateField";
+import FormToast from "@/components/FormToast";
 
 const initialState: ProspectFormState = {};
 
@@ -49,6 +50,8 @@ export default function ProspectForm({
   const statusRef = useRef<HTMLDivElement>(null);
   const owner = owners.find((item) => item.id === ownerId);
   const statusName = statuses.find((item) => item.id === statusId)?.name ?? "Opportunité";
+  const [toast, setToast] = useState<{ id: number; message: string; tone: "success" | "error" } | null>(null);
+  const wasPending = useRef(false);
 
   useEffect(() => {
     if (!statusOpen) return;
@@ -75,8 +78,22 @@ export default function ProspectForm({
     setOwnerId(defaultOwnerId ?? "");
   }
 
+  useEffect(() => {
+    if (pending) {
+      wasPending.current = true;
+      return;
+    }
+    if (!wasPending.current) return;
+    wasPending.current = false;
+    if (state.error) {
+      setToast({ id: Date.now(), message: state.error, tone: "error" });
+    }
+  }, [pending, state.error]);
+
   return (
-    <form key={formKey} action={formAction} className="product-form prospect-form">
+    <>
+      <FormToast key={toast?.id ?? "idle"} message={toast?.message} tone={toast?.tone ?? "success"} />
+      <form key={formKey} action={formAction} className="product-form prospect-form">
       <CompanyNameField companies={companies} />
 
       <label className="login-field">
@@ -187,7 +204,6 @@ export default function ProspectForm({
       </div>
 
       {state.error ? <p className="login-error span-2">{state.error}</p> : null}
-      {state.success ? <p className="form-success span-2">{state.success}</p> : null}
 
       <div className="prospect-form-footer span-2">
         <button type="button" className="form-reset" onClick={clearForm}>
@@ -199,5 +215,6 @@ export default function ProspectForm({
         </button>
       </div>
     </form>
+    </>
   );
 }

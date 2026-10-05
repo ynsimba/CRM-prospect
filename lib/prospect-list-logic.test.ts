@@ -6,12 +6,10 @@ import {
   groupProspects,
   COMMERCIAL_GRID_COLUMNS,
   needsFollowUpAlert,
-  parsePinnedColumn,
   parseProspectListView,
   prospectListHref,
   resolveProspectOwnerScope,
   sortGridRows,
-  stickyColumnStyle,
 } from "./prospect-list-logic";
 
 function sampleRow(overrides: Partial<Parameters<typeof filterGridRows>[0][number]> = {}) {
@@ -87,25 +85,12 @@ test("Mes Prospects filtre toujours sur le commercial connecté", () => {
   assert.deepEqual(resolveProspectOwnerScope(admin, {}), {});
 });
 
-test("fige les colonnes jusqu’à la colonne choisie", () => {
-  assert.equal(parsePinnedColumn(undefined), "company");
-  assert.equal(parsePinnedColumn("off"), "");
-  assert.equal(parsePinnedColumn("status"), "status");
-  assert.equal(parsePinnedColumn("inconnu"), "company");
-  assert.deepEqual(stickyColumnStyle("company", "status"), { sticky: true, edge: false, left: 0 });
-  assert.equal(stickyColumnStyle("industry", "status").sticky, true);
-  assert.equal(stickyColumnStyle("status", "status").edge, true);
-  assert.equal(stickyColumnStyle("notes", "status").sticky, false);
-  assert.equal(stickyColumnStyle("industry", "company").sticky, false);
-});
-
 test("construit l’URL en conservant les filtres", () => {
   assert.equal(prospectListHref({ q: "raw", mine: "1" }, { mine: undefined }), "/prospects?q=raw");
   assert.equal(prospectListHref({ q: "raw" }, { mine: "1" }), "/prospects?q=raw&mine=1");
   assert.equal(prospectListHref({ mine: "1" }, { density: "compact" }), "/prospects?mine=1&density=compact");
   assert.equal(prospectListHref({ mine: "1", density: "compact" }, { density: undefined }), "/prospects?mine=1");
   assert.equal(prospectListHref({ mine: "1", density: "comfortable" }, { density: undefined }), "/prospects?mine=1");
-  assert.equal(prospectListHref({ mine: "1" }, { pin: "status" }), "/prospects?mine=1&pin=status");
 });
 
 test("regroupe les prospects par entreprise", () => {

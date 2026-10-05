@@ -299,23 +299,6 @@ export const GRID_COL_WIDTHS: Record<GridColumnKey, number> = {
   followUp: 148,
 };
 
-const COLUMN_KEYS = COMMERCIAL_GRID_COLUMNS.map((item) => item.key);
-
-export function parsePinnedColumn(value?: string | string[]) {
-  const raw = firstSearchValue(value);
-  if (raw === "off") return "";
-  if (!raw) return "company";
-  return COLUMN_KEYS.includes(raw as GridColumnKey) ? (raw as GridColumnKey) : "company";
-}
-
-export function stickyColumnStyle(column: GridColumnKey, pin: string) {
-  const pinIndex = COLUMN_KEYS.indexOf(pin as GridColumnKey);
-  const index = COLUMN_KEYS.indexOf(column);
-  if (pinIndex < 0 || index < 0 || index > pinIndex) return { sticky: false, edge: false, left: 0 };
-  const left = COLUMN_KEYS.slice(0, index).reduce((sum, key) => sum + GRID_COL_WIDTHS[key], 0);
-  return { sticky: true, edge: index === pinIndex, left };
-}
-
 export function uniqueTextOptions(values: string[], emptyLabel = "Vide") {
   const seen = new Set<string>();
   const options: GridFilterOption[] = [];
