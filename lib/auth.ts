@@ -12,7 +12,7 @@ import { getSession, type SessionPayload } from "@/lib/session";
 const loadActiveUser = cache(async (userId: string, organizationId: string) =>
   prisma.user.findFirst({
     where: { id: userId, organizationId, isActive: true },
-    select: { id: true, role: true, name: true, lastSeenAt: true },
+    select: { id: true, role: true, name: true, lastSeenAt: true, photoUrl: true },
   }),
 );
 
@@ -33,7 +33,12 @@ export async function requireSession(): Promise<SessionPayload> {
   if (!lastSeen || Date.now() - lastSeen.getTime() > PRESENCE_WRITE_INTERVAL_MS) {
     await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => undefined);
   }
-  return { ...session, role: user.role, name: user.name };
+  return {
+    ...session,
+    role: user.role,
+    name: user.name,
+    photoUrl: (user.photoUrl as string | null) ?? null,
+  };
 }
 
 export async function requirePermission(code: PermissionCode) {

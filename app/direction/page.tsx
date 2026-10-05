@@ -24,6 +24,7 @@ export default async function DirectorDashboardPage() {
       userName={user?.name ?? session.name}
       userInitials={initialsFromName(user?.name ?? session.name) || "PC"}
       civility={user?.civility}
+      photoUrl={(user?.photoUrl as string | null | undefined) ?? session.photoUrl ?? null}
       stats={stats}
       activeHref="/direction"
     />

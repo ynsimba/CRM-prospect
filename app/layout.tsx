@@ -1,15 +1,15 @@
 import UnregisterStaleWorkers from "@/components/UnregisterStaleWorkers";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 import Script from "next/script";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.css";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme";
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -24,8 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.variable} suppressHydrationWarning>
-      <body className={inter.className}>
+    <html lang="fr" className={outfit.variable} suppressHydrationWarning>
+      <body className={outfit.className}>
         <Script
           id="safecheck-theme"
           strategy="beforeInteractive"

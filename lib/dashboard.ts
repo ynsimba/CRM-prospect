@@ -6,11 +6,13 @@ import { orgScope } from "@/lib/auth";
 import {
   PIPELINE_GOAL,
   DASHBOARD_KPI_DETAIL_LIMIT,
+  agentPerformanceFromStatusCounts,
   allProspectsKpi,
   dashboardKpiDetailTitle,
   dormantProspectsKpi,
   followUpProspectsKpi,
   parseDashboardKpiId,
+  type AgentPerformanceBreakdown,
   type DashboardKpi,
   type DashboardKpiDetailRow,
   type DashboardKpiDetails,
@@ -41,6 +43,7 @@ export type DashboardStats = {
   pipelineGoal: number;
   pipelinePercent: number;
   winPercent: number;
+  agentPerformance: AgentPerformanceBreakdown;
   pipelineMix: { open: number; won: number; lost: number };
   prospectKpis: DashboardKpi[];
   taskKpis: DashboardKpi[];
@@ -280,11 +283,16 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
     ...statusKpis,
   ];
 
+  const agentPerformance = agentPerformanceFromStatusCounts(
+    ordered.map((status) => ({ slug: status.slug, count: counts.get(status.id) ?? 0 })),
+  );
+
   return {
     overdue: overdueTasks,
     pipelineGoal: PIPELINE_GOAL,
     pipelinePercent: Math.round(conversionPercent(enteredPipelineThisMonth, createdThisMonth)),
     winPercent: Math.round(monthWinRate(closed, now)),
+    agentPerformance,
     pipelineMix: {
       open: pipeline ? (counts.get(pipeline.id) ?? 0) : 0,
       won: finalized ? (counts.get(finalized.id) ?? 0) : 0,

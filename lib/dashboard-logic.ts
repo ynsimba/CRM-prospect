@@ -133,3 +133,52 @@ export function followUpProspectsKpi(count: number, href: string) {
     icon: "bi-exclamation-triangle-fill",
   };
 }
+
+/** Points de performance gagnés selon le statut courant du prospect. */
+export const PROSPECT_PERFORMANCE_POINTS = {
+  opportunite: 5,
+  lead: 15,
+  pipeline: 30,
+  finalise: 50,
+  rejete: 0,
+} as const;
+
+export type ProspectPerformanceSlug = keyof typeof PROSPECT_PERFORMANCE_POINTS;
+
+export type AgentPerformanceBreakdown = {
+  percent: number;
+  points: number;
+  byStage: {
+    opportunite: number;
+    lead: number;
+    pipeline: number;
+    finalise: number;
+  };
+};
+
+export function prospectPerformancePoints(slug: string): number {
+  return PROSPECT_PERFORMANCE_POINTS[slug as ProspectPerformanceSlug] ?? 0;
+}
+
+/** Score agent = somme des points des prospects, plafonnée à 100 %. */
+export function agentPerformanceFromStatusCounts(
+  countsBySlug: Iterable<{ slug: string; count: number }>,
+): AgentPerformanceBreakdown {
+  const byStage = { opportunite: 0, lead: 0, pipeline: 0, finalise: 0 };
+  let points = 0;
+
+  for (const item of countsBySlug) {
+    const count = Math.max(0, Math.floor(item.count));
+    if (count === 0) continue;
+    points += prospectPerformancePoints(item.slug) * count;
+    if (item.slug === "opportunite" || item.slug === "lead" || item.slug === "pipeline" || item.slug === "finalise") {
+      byStage[item.slug] += count;
+    }
+  }
+
+  return {
+    points,
+    percent: Math.min(100, points),
+    byStage,
+  };
+}

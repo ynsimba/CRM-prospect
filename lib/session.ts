@@ -13,6 +13,8 @@ export type SessionPayload = {
   organizationId: string;
   role: Role;
   name: string;
+  /** Enriched by requireSession from the database (not stored in the JWT). */
+  photoUrl?: string | null;
 };
 
 function getSecret() {

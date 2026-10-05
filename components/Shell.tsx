@@ -19,7 +19,13 @@ export default async function Shell({
   const unreadCount = await countUnreadNotifications(session);
 
   return (
-    <AppShell activeHref={activeHref} role={session.role} userName={session.name} unreadCount={unreadCount}>
+    <AppShell
+      activeHref={activeHref}
+      role={session.role}
+      userName={session.name}
+      photoUrl={session.photoUrl ?? null}
+      unreadCount={unreadCount}
+    >
       {children}
     </AppShell>
   );

@@ -11,11 +11,22 @@ import RelanceKpiTable from "./RelanceKpiTable";
 
 const noopSubscribe = () => () => {};
 
-type MetricGridProps = {
-  metrics: DashboardKpi[];
+const TONE_ICON: Record<DashboardKpi["tone"], string> = {
+  orange: "bi-lightning-charge",
+  navy: "bi-moon-stars",
+  blue: "bi-funnel",
+  green: "bi-check2-circle",
+  red: "bi-exclamation-triangle",
+  urgent: "bi-bell",
+  brand: "bi-people",
 };
 
-export default function MetricGrid({ metrics }: MetricGridProps) {
+type MetricGridProps = {
+  metrics: DashboardKpi[];
+  variant?: "filled" | "summary" | "tasks";
+};
+
+export default function MetricGrid({ metrics, variant = "filled" }: MetricGridProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const requestId = useRef(0);
@@ -87,41 +98,95 @@ export default function MetricGrid({ metrics }: MetricGridProps) {
     };
   }, [open]);
 
+  const gridClass =
+    variant === "summary" ? "metric-grid metric-grid-summary" : variant === "tasks" ? "metric-grid metric-grid-tasks" : "metric-grid";
+
+  function renderMetricInner(metric: DashboardKpi) {
+    const icon = metric.icon ?? TONE_ICON[metric.tone] ?? "bi-circle";
+    if (variant === "summary") {
+      return (
+        <>
+          <span className={`metric-summary-icon ${metric.tone}`} aria-hidden>
+            <i className={`bi ${icon}`} />
+          </span>
+          <span className="metric-label">{metric.label}</span>
+          {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
+          <span className="metric-summary-foot">
+            <span className="metric-value">
+              <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
+            </span>
+            <span className="metric-trend">
+              <i className="bi bi-dash-lg" aria-hidden />
+              ce mois
+            </span>
+          </span>
+        </>
+      );
+    }
+
+    if (variant === "tasks") {
+      return (
+        <>
+          <span className="metric-task-icon" aria-hidden>
+            <i className={`bi ${icon}`} />
+          </span>
+          <span className="metric-label">{metric.label}</span>
+          {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
+          <span className="metric-value">
+            <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
+          </span>
+          <span className="metric-task-go" aria-hidden>
+            <i className="bi bi-arrow-right" />
+          </span>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <span className="metric-label">{metric.label}</span>
+        {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
+        <span className="metric-value">
+          <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
+        </span>
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="metric-grid">
-        {metrics.map((metric, index) =>
-          metric.id ? (
+      <div className={gridClass}>
+        {metrics.map((metric, index) => {
+          const boxClass =
+            variant === "summary"
+              ? `metric-box metric-summary ${metric.tone}`
+              : variant === "tasks"
+                ? `metric-box metric-task ${metric.tone}`
+                : `metric-box ${metric.tone}`;
+
+          return metric.id ? (
             <button
               key={metric.id}
               type="button"
-              className={`metric-box ${metric.tone}`}
+              className={boxClass}
               style={{ "--i": index } as CSSProperties}
               aria-haspopup="dialog"
               aria-expanded={open?.id === metric.id}
               onClick={() => openMetric(metric)}
             >
-              <span className="metric-label">{metric.label}</span>
-              {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
-              <span className="metric-value">
-                <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
-              </span>
+              {renderMetricInner(metric)}
             </button>
           ) : (
             <Link
               key={metric.label}
               href={metric.href}
-              className={`metric-box ${metric.tone}`}
+              className={boxClass}
               style={{ "--i": index } as CSSProperties}
             >
-              <span className="metric-label">{metric.label}</span>
-              {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
-              <span className="metric-value">
-                <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
-              </span>
+              {renderMetricInner(metric)}
             </Link>
-          ),
-        )}
+          );
+        })}
       </div>
 
       {mounted && open

@@ -1,6 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dormantWhere, isDormantProspect, allProspectsKpi, dashboardKpiDetailTitle, dashboardKpiHeading, dashboardProspectTableColumns, dormantProspectsKpi, followUpProspectsKpi, isCommentableDashboardKpi, isRelanceDashboardKpi, parseDashboardKpiId, RELANCE_TABLE_COLUMNS, TEAM_PROSPECT_TABLE_COLUMNS } from "./dashboard-logic";
+import {
+  dormantWhere,
+  isDormantProspect,
+  agentPerformanceFromStatusCounts,
+  allProspectsKpi,
+  dashboardKpiDetailTitle,
+  dashboardKpiHeading,
+  dashboardProspectTableColumns,
+  dormantProspectsKpi,
+  followUpProspectsKpi,
+  isCommentableDashboardKpi,
+  isRelanceDashboardKpi,
+  parseDashboardKpiId,
+  prospectPerformancePoints,
+  PROSPECT_PERFORMANCE_POINTS,
+  RELANCE_TABLE_COLUMNS,
+  TEAM_PROSPECT_TABLE_COLUMNS,
+} from "./dashboard-logic";
 import { welcomeDisplayName, welcomeMessage } from "./welcome";
 import { last12MonthWinRates } from "./report-logic";
 
@@ -148,4 +165,46 @@ test("préfixe Mr / Mme uniquement dans le widget de bienvenue", () => {
     welcomeMessage("Françis BALUMENE", date, undefined, "Mr"),
     "Bon après-midi, Mr Françis",
   );
+});
+
+test("points de performance par statut prospect", () => {
+  assert.equal(prospectPerformancePoints("opportunite"), 5);
+  assert.equal(prospectPerformancePoints("lead"), 15);
+  assert.equal(prospectPerformancePoints("pipeline"), 30);
+  assert.equal(prospectPerformancePoints("finalise"), 50);
+  assert.equal(prospectPerformancePoints("rejete"), 0);
+  assert.equal(prospectPerformancePoints("inconnu"), 0);
+  assert.equal(
+    PROSPECT_PERFORMANCE_POINTS.opportunite +
+      PROSPECT_PERFORMANCE_POINTS.lead +
+      PROSPECT_PERFORMANCE_POINTS.pipeline +
+      PROSPECT_PERFORMANCE_POINTS.finalise,
+    100,
+  );
+});
+
+test("score agent = somme des points plafonnée à 100", () => {
+  const empty = agentPerformanceFromStatusCounts([]);
+  assert.equal(empty.percent, 0);
+  assert.equal(empty.points, 0);
+
+  const created = agentPerformanceFromStatusCounts([{ slug: "opportunite", count: 1 }]);
+  assert.equal(created.percent, 5);
+  assert.equal(created.byStage.opportunite, 1);
+
+  const lead = agentPerformanceFromStatusCounts([{ slug: "lead", count: 1 }]);
+  assert.equal(lead.percent, 15);
+
+  const mix = agentPerformanceFromStatusCounts([
+    { slug: "opportunite", count: 2 },
+    { slug: "lead", count: 1 },
+    { slug: "pipeline", count: 1 },
+    { slug: "finalise", count: 1 },
+    { slug: "rejete", count: 3 },
+  ]);
+  // 2*5 + 15 + 30 + 50 = 105 → plafonné à 100
+  assert.equal(mix.points, 105);
+  assert.equal(mix.percent, 100);
+  assert.equal(mix.byStage.pipeline, 1);
+  assert.equal(mix.byStage.finalise, 1);
 });

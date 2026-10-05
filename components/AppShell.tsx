@@ -4,6 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Role } from "@/lib/enums";
 import Link from "next/link";
 import Sidebar from "./Sidebar";
+import ToolbarProfileAvatar from "./ToolbarProfileAvatar";
+import { initialsFromName } from "@/lib/crm";
 import {
   applyThemeClass,
   resolveTheme,
@@ -17,13 +19,22 @@ type AppShellProps = {
   activeHref: string;
   role?: Role;
   userName?: string;
+  photoUrl?: string | null;
   unreadCount?: number;
   children: ReactNode;
 };
 
-export default function AppShell({ activeHref, role, userName, unreadCount = 0, children }: AppShellProps) {
+export default function AppShell({
+  activeHref,
+  role,
+  userName,
+  photoUrl = null,
+  unreadCount = 0,
+  children,
+}: AppShellProps) {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [theme, setTheme] = useState<ThemeName>("light");
+  const initials = initialsFromName(userName ?? "") || "SC";
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_QUERY);
@@ -36,6 +47,10 @@ export default function AppShell({ activeHref, role, userName, unreadCount = 0, 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && window.matchMedia(MOBILE_QUERY).matches) {
         setSidebarVisible(false);
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        window.location.assign("/prospects");
       }
     };
 
@@ -113,18 +128,34 @@ export default function AppShell({ activeHref, role, userName, unreadCount = 0, 
               onClick={() => setSidebarVisible((value) => !value)}
             >
               <i className={`bi ${sidebarVisible ? "bi-layout-sidebar-inset" : "bi-list"}`} aria-hidden />
-              {sidebarVisible ? "Masquer le menu" : "Afficher le menu"}
+              {sidebarVisible ? "Masquer" : "Menu"}
             </button>
-            <Link
-              href="/notifications"
-              className="toolbar-bell"
-              aria-label={unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications"}
-            >
-              <i className="bi bi-bell" aria-hidden />
-              {unreadCount > 0 ? (
-                <span className="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
-              ) : null}
+
+            <Link href="/prospects" className="main-toolbar-search" aria-label="Rechercher un prospect">
+              <i className="bi bi-search" aria-hidden />
+              <span>Rechercher un prospect, une entreprise…</span>
+              <kbd>⌘ K</kbd>
             </Link>
+
+            <div className="main-toolbar-actions">
+              <Link
+                href="/notifications"
+                className="toolbar-icon"
+                aria-label={unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications"}
+              >
+                <i className="bi bi-bell" aria-hidden />
+                {unreadCount > 0 ? (
+                  <span className="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                ) : null}
+              </Link>
+              <Link href="/notes" className="toolbar-icon" aria-label="Messages">
+                <i className="bi bi-chat-dots" aria-hidden />
+              </Link>
+              <Link href="/parametres" className="toolbar-icon" aria-label="Aide et paramètres">
+                <i className="bi bi-question-circle" aria-hidden />
+              </Link>
+              <ToolbarProfileAvatar userName={userName} initials={initials} photoUrl={photoUrl} />
+            </div>
           </div>
           {children}
         </main>

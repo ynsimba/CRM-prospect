@@ -7,7 +7,7 @@ const height = 220;
 const pad = { top: 12, right: 12, bottom: 36, left: 48 };
 const chartW = width - pad.left - pad.right;
 const chartH = height - pad.top - pad.bottom;
-const BAR_COLORS = ["#fcb040", "#07a8a3", "#2f3990"];
+const BAR_COLORS = ["#f59e0b", "#fb923c", "#fbbf24", "#07a8a3", "#3b82f6", "#8b5cf6"];
 
 function niceMax(value: number) {
   if (value <= 0) return 5;
@@ -114,7 +114,7 @@ export default function BarChartCard({ title, subtitle, href, points }: BarChart
           </text>
         ))}
       </svg>
-      <ChartLegend items={[{ color: "#fcb040", label: "Nombre" }]} />
+      <ChartLegend items={[{ color: "#f59e0b", label: "Nombre" }]} />
     </article>
   );
 }

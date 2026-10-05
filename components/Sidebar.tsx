@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
 import { initialsFromName } from "@/lib/crm";
+import { ROLE_LABELS } from "@/lib/roles";
 import {
   COMMERCIAL_NAV,
   DIRECTION_NAV,
@@ -202,10 +203,14 @@ export default function Sidebar({
             Déconnexion
           </button>
         </form>
-        <div className="sidebar-dock">
+        <div className="sidebar-user">
           <span className="sidebar-avatar" title={userName || "Compte"} aria-hidden>
             {initials}
           </span>
+          <div className="sidebar-user-meta">
+            <span className="sidebar-user-name">{userName || "Compte"}</span>
+            <span className="sidebar-user-role">{role ? ROLE_LABELS[role] : "Utilisateur"}</span>
+          </div>
           <Link
             href="/notifications"
             className="sidebar-dock-bell"
@@ -217,9 +222,6 @@ export default function Sidebar({
               <span className="notif-badge dock">{unreadCount > 99 ? "99+" : unreadCount}</span>
             ) : null}
           </Link>
-          <button type="button" className="sidebar-hide dock" aria-label="Masquer le menu" onClick={onHide}>
-            <i className="bi bi-chevron-double-left" aria-hidden />
-          </button>
         </div>
       </div>
     </aside>
