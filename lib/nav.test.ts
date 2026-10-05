@@ -18,6 +18,7 @@ test("un délégué commercial n’a que les modules du quotidien", () => {
     [
       "Tableau de bord",
       "Tous les prospects",
+      "Tous les contacts",
       "Ajouter contact",
       "Ajouter un prospect",
       "Suivi prospect",
@@ -76,6 +77,13 @@ test("la fiche prospect n’active pas Ajouter un prospect", () => {
   assert.equal(isNavActive("/prospects/nouveau", "/prospects/abc", SALES_NAV), false);
   assert.equal(isNavActive("/prospects/nouveau", "/prospects/nouveau", SALES_NAV), true);
   assert.equal(isNavActive("/prospects", "/prospects/nouveau", SALES_NAV), false);
+});
+
+test("la fiche contact n’active pas Ajouter contact", () => {
+  assert.equal(isNavActive("/contacts", "/contacts/abc", SALES_NAV), true);
+  assert.equal(isNavActive("/contacts/nouveau", "/contacts/abc", SALES_NAV), false);
+  assert.equal(isNavActive("/contacts/nouveau", "/contacts/nouveau", SALES_NAV), true);
+  assert.equal(isNavActive("/contacts", "/contacts/nouveau", SALES_NAV), false);
 });
 
 test("modules Airtable : direction masquée au délégué commercial", () => {

@@ -32,6 +32,7 @@ export const CONFIG_NAV: NavItem[] = [
 export const SALES_NAV: NavItem[] = [
   { href: "/", icon: "bi-house", label: "Tableau de bord" },
   { href: "/prospects", icon: "bi-people", label: "Tous les prospects" },
+  { href: "/contacts", icon: "bi-person-lines-fill", label: "Tous les contacts" },
   { href: "/contacts/nouveau", icon: "bi-person-plus", label: "Ajouter contact" },
   { href: "/prospects/nouveau", icon: "bi-person-plus-fill", label: "Ajouter un prospect" },
   { href: "/suivi", icon: "bi-eye", label: "Suivi prospect" },

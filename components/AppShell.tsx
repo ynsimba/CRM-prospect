@@ -151,9 +151,6 @@ export default function AppShell({
               <Link href="/notes" className="toolbar-icon" aria-label="Messages">
                 <i className="bi bi-chat-dots" aria-hidden />
               </Link>
-              <Link href="/parametres" className="toolbar-icon" aria-label="Aide et paramètres">
-                <i className="bi bi-question-circle" aria-hidden />
-              </Link>
               <ToolbarProfileAvatar userName={userName} initials={initials} photoUrl={photoUrl} />
             </div>
           </div>

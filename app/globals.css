@@ -2507,10 +2507,14 @@ html.theme-dim .cal-pop-day.is-muted,
 }
 
 .query-container {
+  position: sticky;
+  top: 0;
+  z-index: 25;
   margin: -18px -22px 0 -18px;
   padding: 16px 22px 0 22px;
   border-bottom: 1px solid var(--line);
   background: var(--shell-bg);
+  box-shadow: 0 8px 18px rgba(15, 40, 20, 0.04);
 }
 
 .query-crumb {
@@ -2775,6 +2779,98 @@ html.theme-dim .cal-pop-day.is-muted,
   padding: 8px 12px;
   border-bottom: 1px solid #edf2f7;
 }
+.data-table.prospect-grid.is-commercial thead th,
+.data-table.prospect-grid.is-commercial thead th.grid-th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 12;
+  background: var(--shell-bg) !important;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.data-table.prospect-grid.is-commercial thead th.grid-th:has(details[open]) {
+  z-index: 22;
+}
+
+/* Prospects: barre figée (flex) + en-têtes sticky — scroll uniquement dans .query-grid. */
+.dashboard-main:has(.prospects-sticky-page) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.dashboard-main:has(.prospects-sticky-page) .main-toolbar {
+  flex: none;
+}
+
+.prospects-sticky-page {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.prospects-sticky-page .query-container {
+  position: relative;
+  top: auto;
+  z-index: 26;
+  flex: 0 0 auto;
+  margin-left: -22px;
+  margin-right: -22px;
+  box-shadow: none;
+}
+
+.prospects-sticky-page .query-grid.dash-card,
+.prospects-sticky-page .query-grid {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 0;
+  max-height: none;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  /* Compense le margin négatif : sinon overflow:hidden du parent coupe la 1re colonne. */
+  margin: 0 -22px;
+  max-width: calc(100% + 44px);
+  padding: 0 22px 28px;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.prospects-sticky-page .query-grid:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.prospects-sticky-page .table-wrap.is-grid-scroll,
+.prospects-sticky-page .query-grid .table-wrap.is-grid-scroll {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (max-width: 991.98px) {
+  .prospects-sticky-page .query-container {
+    margin-left: -16px;
+    margin-right: -16px;
+  }
+
+  .prospects-sticky-page .query-grid.dash-card,
+  .prospects-sticky-page .query-grid {
+    margin: 0 -16px;
+    max-width: calc(100% + 32px);
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
 
 .grid-th {
   vertical-align: middle;
@@ -2908,7 +3004,8 @@ html.theme-dim .cal-pop-day.is-muted,
 }
 
 .prospect-grid.is-commercial th.is-sticky {
-  z-index: 5;
+  top: 0;
+  z-index: 14;
 }
 
 .prospect-grid.is-commercial td.is-sticky.is-pin-edge,

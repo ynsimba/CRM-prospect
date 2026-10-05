@@ -34,6 +34,7 @@ export default function ProspectQueryBar({
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
 
+
   function onMenuToggle(event: SyntheticEvent<HTMLDetailsElement>) {
     keepSingleMenu(event);
     if (event.currentTarget.open) setSearchOpen(false);

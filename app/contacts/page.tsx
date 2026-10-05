@@ -25,32 +25,49 @@ export default async function ContactsPage({
 
   return (
     <Shell activeHref="/contacts">
-      <div className="page-head">
-        <div>
-          <h1 className="page-title">Contacts</h1>
-          <p className="card-sub">Interlocuteurs rattachés aux entreprises.</p>
+      <div className="query-container">
+        <nav className="query-crumb" aria-label="Fil d’Ariane">
+          <span>Interface Commerciale</span>
+          <i className="bi bi-chevron-right" aria-hidden />
+          <strong>Tous les contacts</strong>
+        </nav>
+        <h1 className="query-heading">Tous les contacts</h1>
+        <p className="query-desc">
+          {isSales
+            ? "Interlocuteurs rattachés à vos entreprises en prospection"
+            : "Interlocuteurs rattachés aux entreprises"}
+        </p>
+
+        <div className="query-toolbar">
+          <div className="query-tabs" role="tablist" aria-label="Périmètre des contacts">
+            <span className="query-tab active" role="tab" aria-selected="true">
+              Tous les contacts
+            </span>
+          </div>
+          <div className="query-actions">
+            <form method="get" className="query-search is-open">
+              <button type="submit" className="query-icon-btn" aria-label="Rechercher">
+                <i className="bi bi-search" aria-hidden />
+              </button>
+              <input
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Rechercher contacts"
+                aria-label="Rechercher contacts"
+              />
+            </form>
+            {canManage ? (
+              <Link href="/contacts/nouveau" className="query-icon-btn" aria-label="Ajouter un contact">
+                <i className="bi bi-person-plus" aria-hidden />
+              </Link>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <article className="dash-card" style={{ marginBottom: 16 }}>
-        <form method="get" className="row g-2 align-items-end">
-          <div className="col-md-6">
-            <label className="login-field">
-              Recherche
-              <input name="q" defaultValue={q ?? ""} placeholder="Nom, e-mail, téléphone, société" />
-            </label>
-          </div>
-          <div className="col-md-2">
-            <button type="submit" className="btn-download">
-              Filtrer
-            </button>
-          </div>
-        </form>
-      </article>
-
-      <div className="row g-3">
+      <div className="row g-3" style={{ marginTop: 16 }}>
         <div className={showCreateForm ? "col-12 col-xl-8" : "col-12"}>
-          <article className="dash-card">
+          <article className="dash-card query-grid">
             {contacts.length === 0 ? (
               <p className="empty-copy">Aucun contact pour le moment.</p>
             ) : (

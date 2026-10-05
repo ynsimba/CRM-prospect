@@ -107,6 +107,7 @@ export default async function ProspectsPage({
 
   return (
     <Shell activeHref="/prospects">
+      <div className="prospects-sticky-page">
       <Suspense fallback={null}>
         <CreatedProspectToast />
       </Suspense>
@@ -147,6 +148,7 @@ export default async function ProspectsPage({
           ))
         )}
       </article>
+      </div>
     </Shell>
   );
 }
