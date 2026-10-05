@@ -64,6 +64,7 @@ test("la direction n’a que son interface", () => {
       "Tâches par département",
       "Archives Task par département",
       "Archive Prospect",
+      "Notes partagées",
     ],
   );
   assert.equal(config.length, 0);
@@ -89,9 +90,14 @@ test("la fiche contact n’active pas Ajouter contact", () => {
 test("modules Airtable : direction masquée au délégué commercial", () => {
   assert.deepEqual(
     visibleSidebarModules("SALES").map((item) => item.label),
-    ["Mes Tâches", "Mes notes", "Fil de Discussion"],
+    ["Fil de Discussion"],
+  );
+  assert.deepEqual(
+    visibleSidebarModules("TEAM_LEAD").map((item) => item.label),
+    ["Mon équipe commerciale", "Fil de Discussion"],
   );
   assert.deepEqual(visibleSidebarModules("MANAGER").map((item) => item.label), ["Fil de Discussion"]);
+  assert.ok(DIRECTION_NAV.some((item) => item.href === "/notes"));
   assert.ok(DIRECTION_NAV.some((item) => item.href === "/direction/assignation"));
   assert.equal(isNavActive("/direction", "/direction/taches", DIRECTION_NAV), false);
   assert.equal(isNavActive("/direction/taches", "/direction/taches/departement", DIRECTION_NAV), false);

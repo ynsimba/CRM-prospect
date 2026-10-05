@@ -7,32 +7,50 @@ import type { PermissionCode } from "@/lib/permissions";
 import { roleHasPermission } from "@/lib/permissions";
 import { isAdminRole, isDirectionRole, isSalesRole } from "@/lib/roles";
 import { getSession, type SessionPayload } from "@/lib/session";
+import { isSessionIdle } from "@/lib/session-policy";
 
-// The JWT lives 7 days: re-check the account so deactivation and role changes apply immediately.
 const loadActiveUser = cache(async (userId: string, organizationId: string) =>
   prisma.user.findFirst({
     where: { id: userId, organizationId, isActive: true },
-    select: { id: true, role: true, name: true, lastSeenAt: true, photoUrl: true },
+    select: {
+      id: true,
+      role: true,
+      name: true,
+      lastSeenAt: true,
+      photoUrl: true,
+      sessionToken: true,
+    },
   }),
 );
 
-const PRESENCE_WRITE_INTERVAL_MS = 5 * 60_000;
-
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
-  if (!session?.userId) {
-    redirect("/login");
-  }
-  const user = await loadActiveUser(session.userId, session.organizationId);
-  if (!user) {
-    // Only a Route Handler may clear the cookie; /login alone would bounce back via the proxy.
+  // Cookie absent/incomplet : passer par signout pour le purger (évite / ↔ /login en boucle).
+  if (!session?.userId || !session.sessionToken) {
     redirect("/auth/signout");
   }
-  // Feeds « connectés / récemment actifs » in the sales cockpit; throttled to one write per 5 minutes.
-  const lastSeen = user.lastSeenAt as Date | null;
-  if (!lastSeen || Date.now() - lastSeen.getTime() > PRESENCE_WRITE_INTERVAL_MS) {
-    await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => undefined);
+
+  const user = await loadActiveUser(session.userId, session.organizationId);
+  if (!user) {
+    redirect("/auth/signout");
   }
+
+  // Une seule session active : une nouvelle connexion invalide les supports précédents.
+  if (!user.sessionToken || user.sessionToken !== session.sessionToken) {
+    redirect("/auth/signout");
+  }
+
+  // Expiration après 15 minutes sans activité (heartbeat / login).
+  if (isSessionIdle(user.lastSeenAt as Date | null)) {
+    await prisma.user
+      .update({
+        where: { id: user.id },
+        data: { sessionToken: null },
+      })
+      .catch(() => undefined);
+    redirect("/auth/signout");
+  }
+
   return {
     ...session,
     role: user.role,
@@ -73,6 +91,15 @@ export async function requireCommercial() {
   const session = await requireSession();
   if (!isSalesRole(session.role) && !isAdminRole(session.role)) {
     redirect("/direction");
+  }
+  return session;
+}
+
+/** Commerciaux, admins et direction (notes partagées). */
+export async function requireNotesAccess() {
+  const session = await requireSession();
+  if (!isSalesRole(session.role) && !isAdminRole(session.role) && session.role !== "MANAGER") {
+    redirect("/");
   }
   return session;
 }

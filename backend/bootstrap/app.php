@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'internal' => \App\Http\Middleware\EnsureInternalToken::class,
         ]);
+        // Le gateway Prisma envoie des chaînes vides volontaires (ex. note.body) :
+        // ne pas les transformer en NULL sur /api/*.
+        $middleware->convertEmptyStringsToNull(except: [
+            fn (Request $request) => $request->is('api/*'),
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

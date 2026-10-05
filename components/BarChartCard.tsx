@@ -32,7 +32,7 @@ export default function BarChartCard({ title, subtitle, href, points }: BarChart
   const count = Math.max(points.length, 1);
   const gap = 8;
   const barW = Math.max(8, (chartW - gap * (count + 1)) / count);
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxY * part));
+  const ticks = [...new Set([0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxY * part)))];
 
   function xAt(index: number) {
     return pad.left + gap + index * (barW + gap);
@@ -62,7 +62,7 @@ export default function BarChartCard({ title, subtitle, href, points }: BarChart
         aria-label={`${title} par statut`}
       >
         {ticks.map((tick) => (
-          <g key={tick}>
+          <g key={`y-${tick}`}>
             <line
               x1={pad.left}
               x2={width - pad.right}

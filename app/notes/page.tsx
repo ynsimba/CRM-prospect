@@ -1,28 +1,33 @@
-import Link from "next/link";
 import Shell from "@/components/Shell";
 import NoteComposer from "@/components/NoteComposer";
+import NoteListCard from "@/components/NoteListCard";
 import { createNoteAction } from "@/app/actions/notes";
-import { requireCommercial } from "@/lib/auth";
-import { noteExcerpt } from "@/lib/notes-logic";
+import { requireNotesAccess } from "@/lib/auth";
 import { listNotes } from "@/lib/notes";
-import { relativeTimeLabel } from "@/lib/task-follow-logic";
+import { listNoteShareTargets } from "@/lib/users";
 
 export default async function NotesPage({
   searchParams,
 }: {
   searchParams: Promise<{ id?: string }>;
 }) {
-  const session = await requireCommercial();
+  const session = await requireNotesAccess();
   const params = await searchParams;
-  const notes = await listNotes(session);
+  const [notes, shareTargets] = await Promise.all([
+    listNotes(session),
+    listNoteShareTargets(session),
+  ]);
   const selected = notes.find((note) => note.id === params.id) ?? notes[0] ?? null;
+  const readOnly = Boolean(selected && selected.ownerId !== session.userId);
 
   return (
     <Shell activeHref="/notes">
       <div className="page-head">
         <div>
           <h1 className="page-title">Mes notes</h1>
-          <p className="card-sub">Carnet personnel avec éditeur de texte — visites, consignes, idées.</p>
+          <p className="card-sub">
+            Carnet personnel avec éditeur de texte — partage possible avec la direction ou un commercial.
+          </p>
         </div>
         <form action={createNoteAction}>
           <button type="submit" className="btn-download">
@@ -32,30 +37,19 @@ export default async function NotesPage({
       </div>
 
       <div className="note-layout">
-        <aside className="dash-card note-list-card">
-          <h3>Notes</h3>
-          {notes.length === 0 ? (
-            <p className="empty-copy">Aucune note pour le moment. Crée-en une pour commencer.</p>
-          ) : (
-            <ul className="note-list">
-              {notes.map((note) => (
-                <li key={note.id}>
-                  <Link
-                    href={`/notes?id=${note.id}`}
-                    className={`note-list-item ${selected?.id === note.id ? "is-active" : ""}`}
-                  >
-                    <strong>{note.title}</strong>
-                    <span>{noteExcerpt(note.body)}</span>
-                    <em>{relativeTimeLabel(note.updatedAt)}</em>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
+        <NoteListCard
+          notes={notes}
+          selectedId={selected?.id}
+          currentUserId={session.userId}
+          shareTargets={shareTargets}
+        />
         <article className="dash-card note-workspace">
           {selected ? (
-            <NoteComposer note={selected} />
+            <NoteComposer
+              note={selected}
+              readOnly={readOnly}
+              ownerName={selected.owner?.name}
+            />
           ) : (
             <p className="empty-copy">Crée une note pour ouvrir l’éditeur.</p>
           )}

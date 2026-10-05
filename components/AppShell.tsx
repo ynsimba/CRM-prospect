@@ -5,6 +5,7 @@ import type { Role } from "@/lib/enums";
 import Link from "next/link";
 import Sidebar from "./Sidebar";
 import ToolbarProfileAvatar from "./ToolbarProfileAvatar";
+import SessionGuard from "./SessionGuard";
 import { initialsFromName } from "@/lib/crm";
 import {
   applyThemeClass,
@@ -92,6 +93,7 @@ export default function AppShell({
 
   return (
     <div className={`dashboard-page ${theme === "dark" ? "theme-dim" : ""}`}>
+      <SessionGuard />
       {sidebarVisible && (
         <button
           type="button"

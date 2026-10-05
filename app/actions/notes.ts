@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireCommercial } from "@/lib/auth";
+import { requireNotesAccess } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
-import { createNote, deleteNote, updateNote } from "@/lib/notes";
+import { createNote, deleteNote, shareNote, unshareNote, updateNote } from "@/lib/notes";
 
 export type NoteFormState = {
   error?: string;
@@ -16,7 +16,7 @@ function revalidateNotes() {
 }
 
 export async function createNoteAction() {
-  const session = await requireCommercial();
+  const session = await requireNotesAccess();
   const note = await createNote(session);
   await auditAs(session, {
     action: "note.create",
@@ -33,7 +33,7 @@ export async function saveNoteAction(
   _prev: NoteFormState,
   formData: FormData,
 ): Promise<NoteFormState> {
-  const session = await requireCommercial();
+  const session = await requireNotesAccess();
   try {
     await updateNote(session, noteId, {
       title: String(formData.get("title") ?? ""),
@@ -55,7 +55,7 @@ export async function saveNoteAction(
 }
 
 export async function deleteNoteAction(noteId: string) {
-  const session = await requireCommercial();
+  const session = await requireNotesAccess();
   const note = await deleteNote(session, noteId);
   await auditAs(session, {
     action: "note.delete",
@@ -65,4 +65,43 @@ export async function deleteNoteAction(noteId: string) {
   });
   revalidateNotes();
   redirect("/notes");
+}
+
+export async function shareNoteAction(
+  _prev: NoteFormState,
+  formData: FormData,
+): Promise<NoteFormState> {
+  const session = await requireNotesAccess();
+  const noteId = String(formData.get("noteId") ?? "").trim();
+  const userId = String(formData.get("userId") ?? "").trim();
+  if (!noteId || !userId) {
+    return { error: "Choisis un destinataire." };
+  }
+  try {
+    await shareNote(session, noteId, userId);
+    await auditAs(session, {
+      action: "note.share",
+      entity: "UserNote",
+      entityId: noteId,
+      summary: `Partagée avec ${userId}`,
+    });
+    revalidateNotes();
+    return { success: "Note partagée." };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Impossible de partager la note.",
+    };
+  }
+}
+
+export async function unshareNoteAction(noteId: string, sharedWithId: string) {
+  const session = await requireNotesAccess();
+  await unshareNote(session, noteId, sharedWithId);
+  await auditAs(session, {
+    action: "note.unshare",
+    entity: "UserNote",
+    entityId: noteId,
+    summary: `Partage retiré pour ${sharedWithId}`,
+  });
+  revalidateNotes();
 }

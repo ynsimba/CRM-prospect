@@ -51,6 +51,7 @@ class PrismaGateway
         'activity' => \App\Models\Activity::class,
         'task' => \App\Models\Task::class,
         'userNote' => \App\Models\UserNote::class,
+        'noteShare' => \App\Models\NoteShare::class,
         'notification' => \App\Models\Notification::class,
         'goal' => \App\Models\Goal::class,
         'auditLog' => \App\Models\AuditLog::class,
@@ -89,7 +90,8 @@ class PrismaGateway
         'task' => [
             'owner' => 'user', 'assignedBy' => 'user', 'prospect' => 'prospect', 'company' => 'company', 'opportunity' => 'opportunity',
         ],
-        'userNote' => ['owner' => 'user'],
+        'userNote' => ['owner' => 'user', 'shares' => 'noteShare'],
+        'noteShare' => ['note' => 'userNote', 'sharedBy' => 'user', 'sharedWith' => 'user'],
         'notification' => ['user' => 'user'],
         'goal' => ['user' => 'user', 'team' => 'team'],
         'auditLog' => ['actor' => 'user'],

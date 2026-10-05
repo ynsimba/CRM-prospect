@@ -24,6 +24,20 @@ export async function listSalesAgents(session: SessionPayload) {
   });
 }
 
+/** Destinataires possibles pour le partage d’une note : direction + commerciaux. */
+export async function listNoteShareTargets(session: SessionPayload) {
+  return prisma.user.findMany({
+    where: {
+      ...orgScope(session),
+      isActive: true,
+      id: { not: session.userId },
+      role: { in: ["SALES", "TEAM_LEAD", "MANAGER", "OWNER"] },
+    },
+    select: { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
+  });
+}
+
 export async function createUser(
   session: SessionPayload,
   input: { name: string; email: string; password: string; role: Role; phone?: string; civility?: string },

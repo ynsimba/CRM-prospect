@@ -18,6 +18,7 @@ type DashboardProps = {
   photoUrl?: string | null;
   stats: DashboardStats;
   activeHref?: string;
+  showPerformance?: boolean;
 };
 
 export default function Dashboard({
@@ -27,6 +28,7 @@ export default function Dashboard({
   photoUrl = null,
   stats,
   activeHref = "/",
+  showPerformance = true,
 }: DashboardProps) {
   const summaryKpis = stats.prospectKpis.slice(0, 3);
   const statusDonut = stats.statusBars.map((point, index) => ({
@@ -47,6 +49,7 @@ export default function Dashboard({
               photoUrl={photoUrl}
               overdue={stats.overdue}
               agentPerformance={stats.agentPerformance}
+              showPerformance={showPerformance}
             />
           </div>
 

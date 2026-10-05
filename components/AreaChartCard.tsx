@@ -49,7 +49,7 @@ export default function AreaChartCard({
     .map((value, index) => `${index === 0 ? "M" : "L"} ${xAt(index)} ${yAt(value)}`)
     .join(" ");
   const areaPath = `${linePath} L ${xAt(values.length - 1)} ${pad.top + chartH} L ${xAt(0)} ${pad.top + chartH} Z`;
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxY * part));
+  const ticks = [...new Set([0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxY * part)))];
 
   return (
     <article className="dash-card chart-card">
@@ -83,7 +83,7 @@ export default function AreaChartCard({
         })}
 
         {ticks.map((tick) => (
-          <text key={tick} x={pad.left - 8} y={yAt(tick) + 4} textAnchor="end" fontSize="11" fill="#b0b0b0">
+          <text key={`y-${tick}`} x={pad.left - 8} y={yAt(tick) + 4} textAnchor="end" fontSize="11" fill="#b0b0b0">
             {tick}
           </text>
         ))}

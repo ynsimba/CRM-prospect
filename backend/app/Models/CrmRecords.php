@@ -403,6 +403,31 @@ class UserNote extends CrmModel
     {
         return $this->belongsTo(User::class, 'ownerId');
     }
+
+    public function shares()
+    {
+        return $this->hasMany(NoteShare::class, 'noteId');
+    }
+}
+
+class NoteShare extends CrmCreatedModel
+{
+    protected $table = 'note_shares';
+
+    public function note()
+    {
+        return $this->belongsTo(UserNote::class, 'noteId');
+    }
+
+    public function sharedBy()
+    {
+        return $this->belongsTo(User::class, 'sharedById');
+    }
+
+    public function sharedWith()
+    {
+        return $this->belongsTo(User::class, 'sharedWithId');
+    }
 }
 
 class Notification extends CrmCreatedModel

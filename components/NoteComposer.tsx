@@ -14,10 +14,32 @@ type NoteRecord = {
 
 const initialState: NoteFormState = {};
 
-export default function NoteComposer({ note }: { note: NoteRecord }) {
+export default function NoteComposer({
+  note,
+  readOnly = false,
+  ownerName,
+}: {
+  note: NoteRecord;
+  readOnly?: boolean;
+  ownerName?: string;
+}) {
   const save = saveNoteAction.bind(null, note.id);
   const [state, formAction, pending] = useActionState(save, initialState);
   const updatedAt = note.updatedAt instanceof Date ? note.updatedAt : new Date(note.updatedAt);
+
+  if (readOnly) {
+    return (
+      <div className="note-composer is-readonly">
+        <div className="note-composer-head">
+          <h2 className="note-readonly-title">{note.title}</h2>
+          <p className="muted-line">
+            Partagée par {ownerName ?? "un collègue"} · {relativeTimeLabel(updatedAt)}
+          </p>
+        </div>
+        <NoteEditor key={note.id} defaultValue={note.body} readOnly />
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="note-composer">

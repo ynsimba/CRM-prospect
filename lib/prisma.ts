@@ -95,6 +95,7 @@ type PrismaApi = {
   activity: ModelApi;
   task: ModelApi;
   userNote: ModelApi;
+  noteShare: ModelApi;
   notification: ModelApi;
   goal: ModelApi;
   auditLog: ModelApi;
@@ -137,6 +138,7 @@ export const prisma: PrismaApi = {
   activity: model("activity"),
   task: model("task"),
   userNote: model("userNote"),
+  noteShare: model("noteShare"),
   notification: model("notification"),
   goal: model("goal"),
   auditLog: model("auditLog"),

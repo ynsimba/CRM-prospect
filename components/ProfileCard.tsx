@@ -9,6 +9,7 @@ type ProfileCardProps = {
   photoUrl?: string | null;
   overdue: number;
   agentPerformance: AgentPerformanceBreakdown;
+  showPerformance?: boolean;
 };
 
 function clampPercent(value: number) {
@@ -23,6 +24,7 @@ export default function ProfileCard({
   photoUrl = null,
   overdue,
   agentPerformance,
+  showPerformance = true,
 }: ProfileCardProps) {
   const now = new Date();
   const today = new Intl.DateTimeFormat("fr-FR", {
@@ -63,43 +65,45 @@ export default function ProfileCard({
       </div>
 
       <div className="welcome-banner-visual">
-        <div className={`welcome-perf ${tone}`} role="group" aria-label="Performance individuelle">
-          <div className="welcome-perf-top">
-            <div>
-              <p className="welcome-perf-kicker">Performance</p>
-              <p className="welcome-perf-label">Création 5% · Lead 15% · Pipeline 30% · Finalisé 50%</p>
+        {showPerformance ? (
+          <div className={`welcome-perf ${tone}`} role="group" aria-label="Performance individuelle">
+            <div className="welcome-perf-top">
+              <div>
+                <p className="welcome-perf-kicker">Performance</p>
+                <p className="welcome-perf-label">Création 5% · Lead 15% · Pipeline 30% · Finalisé 50%</p>
+              </div>
+              <p className="welcome-perf-score" aria-label={`Score ${performance} pour cent`}>
+                <CountUp end={performance} duration={1200} suffix="%" />
+              </p>
             </div>
-            <p className="welcome-perf-score" aria-label={`Score ${performance} pour cent`}>
-              <CountUp end={performance} duration={1200} suffix="%" />
-            </p>
-          </div>
 
-          <div
-            className="welcome-perf-track"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={performance}
-            aria-label="Barre de performance individuelle"
-          >
-            <span className="welcome-perf-fill" style={{ width: `${performance}%` }} />
-          </div>
+            <div
+              className="welcome-perf-track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={performance}
+              aria-label="Barre de performance individuelle"
+            >
+              <span className="welcome-perf-fill" style={{ width: `${performance}%` }} />
+            </div>
 
-          <div className="welcome-perf-meta">
-            <span>
-              Opp. <strong>{byStage.opportunite}</strong>
-            </span>
-            <span>
-              Lead <strong>{byStage.lead}</strong>
-            </span>
-            <span>
-              Pipeline <strong>{byStage.pipeline}</strong>
-            </span>
-            <span>
-              Finalisé <strong>{byStage.finalise}</strong>
-            </span>
+            <div className="welcome-perf-meta">
+              <span>
+                Opp. <strong>{byStage.opportunite}</strong>
+              </span>
+              <span>
+                Lead <strong>{byStage.lead}</strong>
+              </span>
+              <span>
+                Pipeline <strong>{byStage.pipeline}</strong>
+              </span>
+              <span>
+                Finalisé <strong>{byStage.finalise}</strong>
+              </span>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="welcome-banner-identity">
           {photoUrl ? (

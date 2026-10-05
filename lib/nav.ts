@@ -52,6 +52,7 @@ export const DIRECTION_NAV: NavItem[] = [
   { href: "/direction/taches/departement", icon: "bi-diagram-3", label: "Tâches par département" },
   { href: "/direction/taches/archives", icon: "bi-archive", label: "Archives Task par département" },
   { href: "/direction/archives", icon: "bi-archive-fill", label: "Archive Prospect" },
+  { href: "/notes", icon: "bi-journal-text", label: "Notes partagées" },
 ];
 
 export const SIDEBAR_MODULES: NavItem[] = [
@@ -93,11 +94,20 @@ export const TEAM_LEAD_MODULE: NavItem = {
 };
 
 export function visibleSidebarModules(role?: Role) {
+  let items: NavItem[];
   if (isDirectionRole(role) && !isAdminRole(role) && !isSalesRole(role)) {
-    return SIDEBAR_MODULES.filter((item) => item.href === "/notifications");
+    items = SIDEBAR_MODULES.filter((item) => item.href === "/notifications");
+  } else if (role === "TEAM_LEAD") {
+    items = [TEAM_LEAD_MODULE, ...SIDEBAR_MODULES];
+  } else {
+    items = [...SIDEBAR_MODULES];
   }
-  if (role === "TEAM_LEAD") return [TEAM_LEAD_MODULE, ...SIDEBAR_MODULES];
-  return SIDEBAR_MODULES;
+
+  // Pas de doublon avec les entrées déjà listées sous Interface Commerciale.
+  if (showCommercialModule(role)) {
+    items = items.filter((item) => !COMMERCIAL_HREFS.has(item.href));
+  }
+  return items;
 }
 
 export function showCommercialModule(role?: Role) {

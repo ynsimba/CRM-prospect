@@ -4,15 +4,17 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { Role } from "@/lib/enums";
 import { getSessionSecret } from "@/lib/env";
+import { SESSION_IDLE_MS } from "@/lib/session-policy";
 
 const COOKIE_NAME = "session";
-const EXPIRY_DAYS = 7;
 
 export type SessionPayload = {
   userId: string;
   organizationId: string;
   role: Role;
   name: string;
+  /** Jeton unique de session (un seul support connecté). */
+  sessionToken: string;
   /** Enriched by requireSession from the database (not stored in the JWT). */
   photoUrl?: string | null;
 };
@@ -26,10 +28,17 @@ function getSecret() {
 }
 
 export async function encrypt(payload: SessionPayload) {
-  return new SignJWT(payload)
+  return new SignJWT({
+    userId: payload.userId,
+    organizationId: payload.organizationId,
+    role: payload.role,
+    name: payload.name,
+    sessionToken: payload.sessionToken,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${EXPIRY_DAYS}d`)
+    // Fenêtre glissante : renouvelée à chaque activité serveur.
+    .setExpirationTime(`${Math.ceil(SESSION_IDLE_MS / 1000)}s`)
     .sign(getSecret());
 }
 
@@ -39,14 +48,18 @@ export async function decrypt(session: string | undefined) {
     const { payload } = await jwtVerify(session, getSecret(), {
       algorithms: ["HS256"],
     });
-    return payload as SessionPayload;
+    const data = payload as Partial<SessionPayload> & { userId?: string };
+    if (!data.userId || !data.organizationId || !data.role || !data.name || !data.sessionToken) {
+      return null;
+    }
+    return data as SessionPayload;
   } catch {
     return null;
   }
 }
 
 export async function createSession(payload: SessionPayload) {
-  const expiresAt = new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + SESSION_IDLE_MS);
   const session = await encrypt(payload);
   const cookieStore = await cookies();
 
@@ -66,5 +79,11 @@ export async function getSession() {
 
 export async function deleteSession() {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  cookieStore.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
 }

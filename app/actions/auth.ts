@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { writeAudit } from "@/lib/audit";
-import { createSession, deleteSession } from "@/lib/session";
+import { createSession, deleteSession, getSession } from "@/lib/session";
+import { newSessionToken } from "@/lib/session-policy";
 import { loginFailureMessage } from "@/lib/db-error";
 import { homePathForRole } from "@/lib/roles";
 
@@ -42,9 +43,17 @@ export async function loginAction(
       return { error: "Identifiants incorrects.", email };
     }
 
+    const sessionToken = newSessionToken();
+    const now = new Date();
+
+    // Invalide toute session précédente sur un autre support.
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: now,
+        lastSeenAt: now,
+        sessionToken,
+      },
     });
 
     await writeAudit({
@@ -61,6 +70,7 @@ export async function loginAction(
       organizationId: user.organizationId,
       role: user.role,
       name: user.name,
+      sessionToken,
     });
     nextPath = homePathForRole(user.role);
   } catch (error) {
@@ -72,6 +82,21 @@ export async function loginAction(
 }
 
 export async function logoutAction() {
+  const session = await getSession();
+  if (session?.userId && session.sessionToken) {
+    const user = await prisma.user.findFirst({
+      where: { id: session.userId, sessionToken: session.sessionToken },
+      select: { id: true },
+    });
+    if (user) {
+      await prisma.user
+        .update({
+          where: { id: user.id },
+          data: { sessionToken: null },
+        })
+        .catch(() => undefined);
+    }
+  }
   await deleteSession();
   redirect("/login");
 }

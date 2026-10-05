@@ -27,6 +27,7 @@ export default async function DirectorDashboardPage() {
       photoUrl={(user?.photoUrl as string | null | undefined) ?? session.photoUrl ?? null}
       stats={stats}
       activeHref="/direction"
+      showPerformance={false}
     />
   );
 }

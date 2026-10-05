@@ -84,6 +84,33 @@ class DataGatewayTest extends TestCase
             ->assertJsonPath('code', 'P2002');
     }
 
+    public function test_create_preserves_empty_string_body(): void
+    {
+        DB::table('users')->insert([
+            'id' => '01USER00000000000000000001',
+            'organizationId' => '01ORGA00000000000000000000',
+            'name' => 'Agent',
+            'email' => 'agent@example.com',
+            'passwordHash' => 'x',
+            'role' => 'SALES',
+            'createdAt' => now(),
+            'updatedAt' => now(),
+        ]);
+
+        $this->data('userNote', 'create', [
+            'data' => [
+                'organizationId' => '01ORGA00000000000000000000',
+                'ownerId' => '01USER00000000000000000001',
+                'title' => 'Sans titre',
+                'body' => '',
+            ],
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.body', '');
+
+        $this->assertSame('', DB::table('user_notes')->value('body'));
+    }
+
     public function test_unexpected_errors_do_not_leak_sql_outside_debug(): void
     {
         config(['app.debug' => false]);
