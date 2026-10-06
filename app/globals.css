@@ -915,10 +915,6 @@ a {
   font-weight: 800;
 }
 
-.welcome-banner-wave {
-  font-size: 1.6rem;
-}
-
 .welcome-banner-text {
   margin: 6px 0 0;
   font-size: 0.88rem;
@@ -1533,8 +1529,22 @@ html.theme-dim .metric-box.metric-summary.red .metric-value,
   height: auto;
 }
 
+/* L'anneau de fond n'apparaît que s'il n'y a aucune donnée : il ne colore pas les espaces entre segments. */
 .donut-track {
   stroke: var(--surface-hover);
+}
+
+.donut-svg:has(.donut-seg) .donut-track {
+  stroke: transparent;
+}
+
+.donut-seg {
+  shape-rendering: geometricPrecision;
+  transition: opacity 0.15s ease;
+}
+
+.donut-svg:hover .donut-seg:not(:hover) {
+  opacity: 0.55;
 }
 
 .donut-center {
@@ -11285,10 +11295,6 @@ a.pl-pager-btn:hover {
 
   .welcome-banner-name {
     font-size: 1.5rem;
-  }
-
-  .welcome-banner-wave {
-    font-size: 1.3rem;
   }
 
   .metric-grid-summary {

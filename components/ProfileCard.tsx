@@ -136,9 +136,6 @@ export default function ProfileCard({ name, civility, overdue }: ProfileCardProp
         <h1 className="welcome-banner-title">
           <span className="welcome-banner-hello">Bonjour</span>
           {shortLabel ? <span className="welcome-banner-name">{shortLabel}</span> : null}
-          <span className="welcome-banner-wave" aria-hidden>
-            👋
-          </span>
         </h1>
         <p className="welcome-banner-text">{moment} ! Voici un aperçu de vos activités commerciales.</p>
         <div className="welcome-banner-meta">

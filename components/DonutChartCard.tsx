@@ -3,8 +3,21 @@ import CountUp from "./CountUp";
 
 const size = 200;
 const stroke = 38;
+const center = size / 2;
 const radius = (size - stroke) / 2;
-const circumference = 2 * Math.PI * radius;
+/** Espace laissé entre deux segments voisins, mesuré le long de l’anneau. */
+const GAP = 3;
+
+/** Point de l’anneau à `turn` tour(s) depuis midi, dans le sens horaire. */
+function ringPoint(turn: number) {
+  const angle = turn * 2 * Math.PI;
+  return `${(center + radius * Math.sin(angle)).toFixed(2)} ${(center - radius * Math.cos(angle)).toFixed(2)}`;
+}
+
+/** Arc exact entre deux positions : pas de pointillé, donc pas de bavure à la jointure. */
+function arcPath(from: number, to: number) {
+  return `M${ringPoint(from)} A${radius} ${radius} 0 ${to - from > 0.5 ? 1 : 0} 1 ${ringPoint(to)}`;
+}
 
 type DonutItem = {
   label: string;
@@ -24,14 +37,12 @@ export default function DonutChartCard({ title, subtitle, centerLabel, action, i
   const total = items.reduce((sum, item) => sum + item.value, 0);
   const segments = items.map((item, index) => {
     const share = total > 0 ? item.value / total : 0;
-    const offset = items.slice(0, index).reduce((sum, previous) => sum + previous.value, 0);
-    return {
-      ...item,
-      share,
-      length: share * circumference,
-      offset: total > 0 ? (offset / total) * circumference : 0,
-    };
+    const before = items.slice(0, index).reduce((sum, previous) => sum + previous.value, 0);
+    return { ...item, share, start: total > 0 ? before / total : 0 };
   });
+  const drawn = segments.filter((segment) => segment.value > 0);
+  // Demi-espace retiré à chaque extrémité, en fraction de tour ; inutile quand un seul segment fait le tour.
+  const pad = drawn.length > 1 ? GAP / 2 / (2 * Math.PI * radius) : 0;
 
   return (
     <article className="dash-card chart-card donut-card-rich">
@@ -49,22 +60,36 @@ export default function DonutChartCard({ title, subtitle, centerLabel, action, i
       <div className="donut-rich-body">
         <div className="donut-wrap">
           <svg className="donut-svg" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={title}>
-            <circle className="donut-track" cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} />
-            {segments.map((segment) => (
-              <circle
-                key={`${segment.label}-${segment.color}`}
-                className="donut-seg"
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                fill="none"
-                stroke={segment.color}
-                strokeWidth={stroke}
-                strokeDasharray={`${segment.length} ${circumference - segment.length}`}
-                strokeDashoffset={-segment.offset}
-                transform={`rotate(-90 ${size / 2} ${size / 2})`}
-              />
-            ))}
+            <circle className="donut-track" cx={center} cy={center} r={radius} fill="none" strokeWidth={stroke} />
+            {drawn.map((segment) => {
+              const tip = `${segment.label} : ${segment.value} (${Math.round(segment.share * 100)} %)`;
+              return drawn.length === 1 ? (
+                <circle
+                  key={segment.label}
+                  className="donut-seg"
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  fill="none"
+                  stroke={segment.color}
+                  strokeWidth={stroke}
+                >
+                  <title>{tip}</title>
+                </circle>
+              ) : (
+                <path
+                  key={segment.label}
+                  className="donut-seg"
+                  // Un segment très fin garde au moins un trait visible.
+                  d={arcPath(segment.start + pad, Math.max(segment.start + segment.share - pad, segment.start + pad + 0.002))}
+                  fill="none"
+                  stroke={segment.color}
+                  strokeWidth={stroke}
+                >
+                  <title>{tip}</title>
+                </path>
+              );
+            })}
           </svg>
           <span className="donut-center">
             <strong>
