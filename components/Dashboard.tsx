@@ -11,7 +11,9 @@ import DonutChartCard from "./DonutChartCard";
 import DataGraphicCard from "./DataGraphicCard";
 import AnalyticsCard from "./AnalyticsCard";
 import RelanceKpiTable from "./RelanceKpiTable";
+import ScoresCommerciaux from "./ScoresCommerciaux";
 import type { DashboardStats } from "@/lib/dashboard";
+import type { ScoreCommercialRow } from "@/lib/performance";
 
 const STATUS_COLORS: Record<string, string> = {
   opportunite: "#fbb040",
@@ -28,6 +30,8 @@ type DashboardProps = {
   stats: DashboardStats;
   activeHref?: string;
   showPerformance?: boolean;
+  /** Score 70/20/10 du commercial connecté, repris par la carte Performance. */
+  score?: ScoreCommercialRow;
 };
 
 export default function Dashboard({
@@ -36,6 +40,7 @@ export default function Dashboard({
   stats,
   activeHref = "/",
   showPerformance = true,
+  score,
 }: DashboardProps) {
   const byStatus = stats.barTitle === "Prospect";
   const series = stats.statusBars.map((point, index) => ({
@@ -54,6 +59,10 @@ export default function Dashboard({
 
           <div className="col-12" style={{ "--i": 1 } as CSSProperties}>
             <MetricGrid metrics={stats.prospectKpis} variant="summary" />
+          </div>
+
+          <div className="col-12" style={{ "--i": 2 } as CSSProperties}>
+            <ScoresCommerciaux />
           </div>
 
           {stats.teamProspects ? (
@@ -162,7 +171,7 @@ export default function Dashboard({
           </div>
           {showPerformance ? (
             <div className="col-12 col-lg-4" style={{ "--i": 11 } as CSSProperties}>
-              <PerformanceCard agentPerformance={stats.agentPerformance} />
+              <PerformanceCard agentPerformance={stats.agentPerformance} score={score} />
             </div>
           ) : null}
         </div>

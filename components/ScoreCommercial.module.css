@@ -1,0 +1,198 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+}
+
+.donut {
+  position: relative;
+  width: min(100%, 132px);
+  aspect-ratio: 1;
+}
+
+.ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.track {
+  stroke: var(--line-strong);
+}
+
+.part {
+  shape-rendering: geometricPrecision;
+}
+
+/* La photo remplit l’intérieur de l’anneau en laissant un filet de respiration. */
+.photo {
+  position: absolute;
+  inset: 12%;
+  width: 76%;
+  height: 76%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.initials {
+  display: grid;
+  place-items: center;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.nom {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.score {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* Détail du score : sous l’anneau, révélé au survol de la carte ou au focus clavier du parent. */
+.details {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  z-index: 5;
+  width: 216px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.card:hover .details,
+:is(a, [tabindex]):focus-visible .details {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.details p,
+.details ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detailsHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-strong);
+}
+
+.detailsHead strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailsHead span {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.details .parts {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.parts li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 8px;
+}
+
+.partValue {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.details .counts {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-strong);
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.details .phases {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 10px;
+  margin-top: 4px;
+}
+
+.phases li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.phases strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.details .note {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details {
+    transition: none;
+    transform: translate(-50%, 0);
+  }
+}

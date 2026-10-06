@@ -1,0 +1,96 @@
+/* Le détail d’un score déborde de la carte : elle passe au-dessus des cartes voisines le temps du survol. */
+section.board:hover,
+section.board:focus-within {
+  z-index: 2;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 20px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid > li {
+  min-width: 0;
+}
+
+.item {
+  display: block;
+  padding: 10px 6px;
+  border-radius: 14px;
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.link:hover {
+  background: var(--surface-hover);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 6px;
+}
+
+.skeletonRing,
+.skeletonLine {
+  background: var(--surface-hover);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skeletonRing {
+  width: min(100%, 132px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.skeletonLine {
+  width: 70%;
+  height: 12px;
+  border-radius: 6px;
+}
+
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+}
+
+.error p {
+  margin: 0;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonRing,
+  .skeletonLine {
+    animation: none;
+  }
+}

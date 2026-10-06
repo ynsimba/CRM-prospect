@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AgentsModule from "@/components/agents/AgentsModule";
 import AgentCreateModal from "@/components/AgentCreateModal";
+import ScoresCommerciaux from "@/components/ScoresCommerciaux";
 import { AgentAvatar, PeriodForm, PresenceDot } from "@/components/agents/ui";
 import {
   AGENT_STATUS_LABELS,
@@ -46,6 +47,7 @@ export default async function AgentsListPage({ searchParams }: { searchParams: P
         ) : null
       }
     >
+      <ScoresCommerciaux className="cockpit-section" />
       <article className="dash-card agents-board">
         <PeriodForm period={period} className="agents-filters">
           <label className="cockpit-filter grow">

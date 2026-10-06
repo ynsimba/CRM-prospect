@@ -2,8 +2,9 @@ import Dashboard from "@/components/Dashboard";
 import { requireSession } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/dashboard";
 import { parseDashboardPeriod } from "@/lib/dashboard-logic";
+import { loadScoresCommerciaux } from "@/lib/performance";
 import { prisma } from "@/lib/prisma";
-import { homePathForRole } from "@/lib/roles";
+import { homePathForRole, isSalesRole } from "@/lib/roles";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   });
 
   const { periode } = await searchParams;
-  const stats = await getDashboardStats(session, parseDashboardPeriod(periode));
+  const [stats, scores] = await Promise.all([
+    getDashboardStats(session, parseDashboardPeriod(periode)),
+    isSalesRole(session.role) ? loadScoresCommerciaux(session) : [],
+  ]);
 
-  return <Dashboard userName={user?.name ?? session.name} civility={user?.civility} stats={stats} />;
+  return (
+    <Dashboard
+      userName={user?.name ?? session.name}
+      civility={user?.civility}
+      stats={stats}
+      score={scores.find((row) => row.id === session.userId)}
+    />
+  );
 }
