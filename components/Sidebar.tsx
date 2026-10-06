@@ -5,8 +5,7 @@ import type { Role } from "@/lib/enums";
 import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
-import { initialsFromName } from "@/lib/crm";
-import { ROLE_LABELS, homePathForRole } from "@/lib/roles";
+import { homePathForRole } from "@/lib/roles";
 import {
   COMMERCIAL_NAV,
   DIRECTION_NAV,
@@ -25,7 +24,8 @@ type SidebarProps = {
   activeHref: string;
   role?: Role;
   userName?: string;
-  unreadCount?: number;
+  initials?: string;
+  roleLabel?: string;
   darkMode: boolean;
   onToggleTheme: () => void;
   onHide: () => void;
@@ -37,7 +37,8 @@ export default function Sidebar({
   activeHref,
   role,
   userName = "",
-  unreadCount = 0,
+  initials = "PC",
+  roleLabel = "Utilisateur",
   darkMode,
   onToggleTheme,
   onHide,
@@ -50,13 +51,16 @@ export default function Sidebar({
   const directionActive = isDirectionSectionActive(activeHref);
   const [commercialOpen, setCommercialOpen] = useState(true);
   const [directionOpen, setDirectionOpen] = useState(true);
-  const initials = initialsFromName(userName) || "PC";
+  const homeHref = role ? homePathForRole(role) : "/";
+  // « Tableau de bord » est sorti des modules : il ouvre le menu, comme lien d’accueil.
+  const commercialItems = COMMERCIAL_NAV.filter((item) => item.href !== homeHref);
+  const directionItems = DIRECTION_NAV.filter((item) => item.href !== homeHref);
 
   return (
     <aside id="app-sidebar" className={`sidebar ${open ? "open" : ""}`}>
       <div className="sidebar-logo">
         <Link
-          href={role ? homePathForRole(role) : "/"}
+          href={homeHref}
           className="sidebar-brand-link"
           aria-label="Retour au tableau de bord"
           onClick={onNavigate}
@@ -82,6 +86,16 @@ export default function Sidebar({
       </div>
 
       <nav className="sidebar-nav" aria-label="Principal">
+        <Link
+          href={homeHref}
+          className={`nav-link-item nav-home ${activeHref === homeHref ? "active" : ""}`}
+          aria-current={activeHref === homeHref ? "page" : undefined}
+          onClick={onNavigate}
+        >
+          <i className="bi bi-house-door-fill" aria-hidden />
+          Tableau de bord
+        </Link>
+
         {showCommercialModule(role) ? (
           <div className={`nav-module ${commercialOpen ? "is-open" : ""} ${commercialActive ? "is-current" : ""}`}>
             <button
@@ -90,13 +104,12 @@ export default function Sidebar({
               aria-expanded={commercialOpen}
               onClick={() => setCommercialOpen((value) => !value)}
             >
-              <i className="bi bi-cart3" aria-hidden />
               Interface Commerciale
-              <i className={`bi ${commercialOpen ? "bi-chevron-down" : "bi-chevron-right"} nav-module-caret`} aria-hidden />
+              <i className={`bi ${commercialOpen ? "bi-chevron-up" : "bi-chevron-down"} nav-module-caret`} aria-hidden />
             </button>
             {commercialOpen ? (
               <div className="nav-module-items">
-                {COMMERCIAL_NAV.map((item, index) => (
+                {commercialItems.map((item, index) => (
                   <Link
                     key={`${item.href}-${item.label}`}
                     href={item.href}
@@ -104,6 +117,7 @@ export default function Sidebar({
                     style={{ "--i": index } as CSSProperties}
                     onClick={onNavigate}
                   >
+                    <i className={`bi ${item.icon}`} aria-hidden />
                     {item.label}
                   </Link>
                 ))}
@@ -120,13 +134,12 @@ export default function Sidebar({
               aria-expanded={directionOpen}
               onClick={() => setDirectionOpen((value) => !value)}
             >
-              <i className="bi bi-check2-square" aria-hidden />
               Interface Direction
-              <i className={`bi ${directionOpen ? "bi-chevron-down" : "bi-chevron-right"} nav-module-caret`} aria-hidden />
+              <i className={`bi ${directionOpen ? "bi-chevron-up" : "bi-chevron-down"} nav-module-caret`} aria-hidden />
             </button>
             {directionOpen ? (
               <div className="nav-module-items">
-                {DIRECTION_NAV.map((item, index) => (
+                {directionItems.map((item, index) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -134,6 +147,7 @@ export default function Sidebar({
                     style={{ "--i": index } as CSSProperties}
                     onClick={onNavigate}
                   >
+                    <i className={`bi ${item.icon}`} aria-hidden />
                     {item.label}
                   </Link>
                 ))}
@@ -142,30 +156,34 @@ export default function Sidebar({
           </div>
         ) : null}
 
-        {modules.map((item) => (
-          <Link
-            key={`${item.href}-${item.label}`}
-            href={item.href}
-            className={`nav-link-item module-link ${isNavActive(item.href, activeHref, modules) ? "active" : ""}`}
-            onClick={onNavigate}
-          >
-            <i className={`bi ${item.icon}`} aria-hidden />
-            {item.label}
-          </Link>
-        ))}
+        {modules.length > 0 || extraItems.length > 0 ? (
+          <div className="nav-group">
+            {modules.map((item) => (
+              <Link
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                className={`nav-link-item module-link ${isNavActive(item.href, activeHref, modules) ? "active" : ""}`}
+                onClick={onNavigate}
+              >
+                <i className={`bi ${item.icon}`} aria-hidden />
+                {item.label}
+              </Link>
+            ))}
 
-        {extraItems.map((item, index) => (
-          <Link
-            key={`${item.href}-${item.label}`}
-            href={item.href}
-            className={`nav-link-item ${isNavActive(item.href, activeHref, extraItems) ? "active" : ""}`}
-            style={{ "--i": index } as CSSProperties}
-            onClick={onNavigate}
-          >
-            <i className={`bi ${item.icon}`} aria-hidden />
-            {item.label}
-          </Link>
-        ))}
+            {extraItems.map((item, index) => (
+              <Link
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                className={`nav-link-item module-link ${isNavActive(item.href, activeHref, extraItems) ? "active" : ""}`}
+                style={{ "--i": index } as CSSProperties}
+                onClick={onNavigate}
+              >
+                <i className={`bi ${item.icon}`} aria-hidden />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </nav>
 
       <div className="sidebar-config">
@@ -173,15 +191,17 @@ export default function Sidebar({
         <div className="config-card">
           <div className="mode-row">
             <span>
-              <i className={`bi ${darkMode ? "bi-moon-stars" : "bi-sun"}`} aria-hidden />
+              <span className="mode-icon" aria-hidden>
+                <i className={`bi ${darkMode ? "bi-moon-stars" : "bi-brightness-high"}`} />
+              </span>
               {darkMode ? "Mode sombre" : "Mode clair"}
             </span>
             <label className="switch">
               <input
                 type="checkbox"
-                checked={darkMode}
+                checked={!darkMode}
                 onChange={onToggleTheme}
-                aria-label={darkMode ? "Désactiver le mode sombre" : "Activer le mode sombre"}
+                aria-label={darkMode ? "Activer le mode clair" : "Activer le mode sombre"}
               />
               <span className="slider" />
             </label>
@@ -216,18 +236,10 @@ export default function Sidebar({
           </span>
           <div className="sidebar-user-meta">
             <span className="sidebar-user-name">{userName || "Compte"}</span>
-            <span className="sidebar-user-role">{role ? ROLE_LABELS[role] : "Utilisateur"}</span>
+            <span className="sidebar-user-role">{roleLabel}</span>
           </div>
-          <Link
-            href="/notifications"
-            className="sidebar-dock-bell"
-            onClick={onNavigate}
-            aria-label={unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications"}
-          >
-            <i className="bi bi-bell" aria-hidden />
-            {unreadCount > 0 ? (
-              <span className="notif-badge dock">{unreadCount > 99 ? "99+" : unreadCount}</span>
-            ) : null}
+          <Link href="/parametres" className="sidebar-user-more" onClick={onNavigate} aria-label="Mon compte">
+            <i className="bi bi-three-dots-vertical" aria-hidden />
           </Link>
         </div>
       </div>

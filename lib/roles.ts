@@ -11,6 +11,12 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const PROFILE_ROLE_LABELS = ROLE_LABELS;
 
+/** Libellé court du compte connecté (barre du haut, pied du menu), accordé à la civilité. */
+export function accountRoleLabel(role: Role, civility?: string | null) {
+  if (role === "SALES") return civility === "Mme" ? "Commerciale" : "Commercial";
+  return ROLE_LABELS[role];
+}
+
 export const ASSIGNABLE_ROLES: Role[] = ["OWNER", "MANAGER", "TEAM_LEAD", "SALES"];
 
 /** Roles that carry a prospect portfolio and appear in the « Agents commerciaux » module. */

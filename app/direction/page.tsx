@@ -1,30 +1,25 @@
 import Dashboard from "@/components/Dashboard";
 import { requireDirector } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/dashboard";
+import { parseDashboardPeriod } from "@/lib/dashboard-logic";
 import { prisma } from "@/lib/prisma";
 
-function initialsFromName(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-export default async function DirectorDashboardPage() {
+export default async function DirectorDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periode?: string }>;
+}) {
   const session = await requireDirector();
   const user = await prisma.user.findFirst({
     where: { id: session.userId, organizationId: session.organizationId },
   });
-  const stats = await getDashboardStats(session);
+  const { periode } = await searchParams;
+  const stats = await getDashboardStats(session, parseDashboardPeriod(periode));
 
   return (
     <Dashboard
       userName={user?.name ?? session.name}
-      userInitials={initialsFromName(user?.name ?? session.name) || "PC"}
       civility={user?.civility}
-      photoUrl={(user?.photoUrl as string | null | undefined) ?? session.photoUrl ?? null}
       stats={stats}
       activeHref="/direction"
       showPerformance={false}

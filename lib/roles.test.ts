@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   ASSIGNABLE_ROLES,
   ROLE_LABELS,
+  accountRoleLabel,
   homePathForRole,
   isAdminRole,
   isDirectionRole,
@@ -37,4 +38,11 @@ test("chaque rôle a sa page d’accueil", () => {
   assert.equal(isAdminRole("SUPER_ADMIN"), true);
   assert.equal(isDirectionRole("SUPER_ADMIN"), true);
   assert.equal(canManageAgents("SUPER_ADMIN"), true);
+});
+
+test("le libellé du compte connecté s’accorde à la civilité", () => {
+  assert.equal(accountRoleLabel("SALES", "Mme"), "Commerciale");
+  assert.equal(accountRoleLabel("SALES", "Mr"), "Commercial");
+  assert.equal(accountRoleLabel("SALES"), "Commercial");
+  assert.equal(accountRoleLabel("MANAGER", "Mme"), "Direction");
 });

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC_PATHS = new Set(["/login", "/auth/signout"]);
+// Le manifeste est lu sans cookie par le navigateur lors de l’installation de l’application.
+const PUBLIC_PATHS = new Set(["/login", "/auth/signout", "/manifest.webmanifest"]);
 const COOKIE_NAME = "session";
 
 function getSecret() {

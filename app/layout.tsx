@@ -1,5 +1,5 @@
 import UnregisterStaleWorkers from "@/components/UnregisterStaleWorkers";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import Script from "next/script";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -18,8 +18,21 @@ export const metadata: Metadata = {
   icons: {
     icon: "data:,",
     shortcut: "data:,",
-    apple: "data:,",
+    apple: "/app-icon-192.png",
   },
+  // Lancée depuis l’écran d’accueil, l’app s’ouvre sans la barre du navigateur.
+  appleWebApp: { capable: true, title: "SafeCom", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Laisse le contenu passer sous l’encoche ; les marges sûres sont gérées en CSS.
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#141814" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -4,8 +4,9 @@ import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import DateField from "@/components/DateField";
 import { closeMenuOnSelect } from "@/components/close-menu";
-import { updateProspectRowAction } from "@/app/actions/prospects";
+import { deleteProspectAction, updateProspectRowAction } from "@/app/actions/prospects";
 import { initialsFromName, statusPillClass } from "@/lib/crm";
+import { toCsv } from "@/lib/csv";
 import {
   COMMERCIAL_GRID_COLUMNS,
   GRID_COL_WIDTHS,
@@ -13,6 +14,7 @@ import {
   gridColumnOptions,
   prospectListHref,
   toDateInput,
+  toneIndex,
   type GridColumnKey,
   type GridFilterOption,
   type GridRowLike,
@@ -52,6 +54,8 @@ type ProspectGridProps = {
   density: "compact" | "medium" | "comfortable";
   canManage: boolean;
   canReassign?: boolean;
+  /** Réservé aux administrateurs : ajoute « Supprimer » au menu d’actions de la ligne. */
+  canDelete?: boolean;
   variant?: "full" | "commercial";
   query?: Record<string, string | undefined>;
   sort?: string;
@@ -66,6 +70,7 @@ export default function ProspectGrid({
   density,
   canManage,
   canReassign = false,
+  canDelete = false,
   variant = "full",
   query,
   sort,
@@ -91,6 +96,31 @@ export default function ProspectGrid({
     setSelected((current) => (checked ? [...current, id] : current.filter((item) => item !== id)));
   }
 
+  const allSelected = rows.length > 0 && rows.every((row) => selected.includes(row.id));
+
+  function exportSelection() {
+    const picked = rows.filter((row) => selected.includes(row.id));
+    const csv = toCsv(
+      ["Entreprise", "Secteur", "Adresse", "Dernière action", "Date RDV", "Statut", "Commentaire statut", "Responsable"],
+      picked.map((row) => [
+        row.companyName,
+        row.industry,
+        row.address,
+        formatShortDate(row.lastActionAt),
+        row.meetingAt ? formatShortDate(row.meetingAt) : "",
+        row.statusName,
+        row.notes,
+        row.ownerName,
+      ]),
+    );
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prospects-selection.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function head(column: (typeof COMMERCIAL_GRID_COLUMNS)[number]) {
     const colProps = col(column.key);
     if (!filterable || !query) return <th {...colProps}>{column.label}</th>;
@@ -112,10 +142,33 @@ export default function ProspectGrid({
 
   return (
     <div className={`table-wrap${commercial ? " is-grid-scroll" : ""}`}>
+      {commercial && selected.length > 0 ? (
+        <div className="grid-selection" role="status">
+          <strong>
+            {selected.length} sélectionné{selected.length > 1 ? "s" : ""}
+          </strong>
+          <button type="button" onClick={exportSelection}>
+            <i className="bi bi-download" aria-hidden />
+            Exporter la sélection
+          </button>
+          <button type="button" onClick={() => setSelected([])}>
+            Tout désélectionner
+          </button>
+        </div>
+      ) : null}
       <table className={`data-table prospect-grid density-${density}${commercial ? " is-commercial" : ""}`}>
         <thead>
           <tr>
-            {commercial ? null : (
+            {commercial ? (
+              <th className="col-check">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={(event) => setSelected(event.target.checked ? rows.map((row) => row.id) : [])}
+                  aria-label="Tout sélectionner"
+                />
+              </th>
+            ) : (
               <th className="col-check">
                 <span className="visually-hidden">Sélection</span>
               </th>
@@ -132,7 +185,9 @@ export default function ProspectGrid({
             {head(COMMERCIAL_GRID_COLUMNS[6])}
             {head(COMMERCIAL_GRID_COLUMNS[7])}
             {head(COMMERCIAL_GRID_COLUMNS[8])}
-            {commercial ? null : (
+            {commercial ? (
+              <th className="col-actions">Actions</th>
+            ) : (
               <>
                 <th>Prospect dormant</th>
                 <th>Archivé</th>
@@ -145,33 +200,50 @@ export default function ProspectGrid({
             const active = selected.includes(row.id);
             return (
               <tr key={row.id} className={active ? "is-active" : ""}>
-                {commercial ? null : (
-                  <td className="col-check">
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={(event) => toggle(row.id, event.target.checked)}
-                      aria-label={`Sélectionner ${row.companyName}`}
-                    />
-                  </td>
-                )}
+                <td className="col-check">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={(event) => toggle(row.id, event.target.checked)}
+                    aria-label={`Sélectionner ${row.companyName}`}
+                  />
+                </td>
                 {commercial ? null : <td>{row.displayCode || "—"}</td>}
                 <td {...col("company")}>
-                  <div className="company-cell">
-                    <strong>{row.companyName}</strong>
-                    <Link href={row.href} className="row-open">
-                      Ouvrir <i className="bi bi-chevron-right" aria-hidden />
+                  {commercial ? (
+                    <Link href={row.href} className="company-cell is-linked" title={`Ouvrir ${row.companyName}`}>
+                      <span className={`company-avatar tone-${toneIndex(row.companyName, 6)}`} aria-hidden>
+                        {row.companyName.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                      <strong>{row.companyName}</strong>
                     </Link>
-                  </div>
+                  ) : (
+                    <div className="company-cell">
+                      <strong>{row.companyName}</strong>
+                      <Link href={row.href} className="row-open">
+                        Ouvrir <i className="bi bi-chevron-right" aria-hidden />
+                      </Link>
+                    </div>
+                  )}
                 </td>
-                <td {...col("industry")}>{row.industry || "—"}</td>
+                <td {...col("industry")}>
+                  {commercial && row.industry ? (
+                    <span className={`sector-tag tone-${toneIndex(row.industry, 5)}`}>{row.industry}</span>
+                  ) : (
+                    row.industry || "—"
+                  )}
+                </td>
                 <td {...col("address")} className={`${col("address").className} cell-ellipsis`}>
+                  {commercial && row.address ? <i className="bi bi-geo-alt cell-icon" aria-hidden /> : null}
                   {row.address || "—"}
                 </td>
                 {commercial ? null : <td>{row.city || "—"}</td>}
                 {commercial ? null : <td>{row.size || "—"}</td>}
-                <td {...col("lastAction")}>{formatShortDate(row.lastActionAt)}</td>
-                <td {...col("meeting")}>
+                <td {...col("lastAction")}>
+                  {commercial ? <i className="bi bi-calendar4 cell-icon" aria-hidden /> : null}
+                  {formatShortDate(row.lastActionAt)}
+                </td>
+                <td {...col("meeting")} data-label="RDV">
                   {canManage ? (
                     <form action={updateProspectRowAction.bind(null, row.id)}>
                       <input type="hidden" name="statusId" value={row.statusId} />
@@ -222,7 +294,7 @@ export default function ProspectGrid({
                     </span>
                   )}
                 </td>
-                <td {...col("notes")}>
+                <td {...col("notes")} data-label="Commentaire">
                   {canManage ? (
                     <form action={updateProspectRowAction.bind(null, row.id)}>
                       <input type="hidden" name="statusId" value={row.statusId} />
@@ -279,12 +351,46 @@ export default function ProspectGrid({
                     </span>
                   )}
                 </td>
-                <td {...col("followUp")}>
-                  <div className="follow-alert truncate-1">
-                    {row.needsFollowUp ? row.relanceLabel || "⚠️ Relance nécessaire" : ""}
-                  </div>
+                <td {...col("followUp")} data-label="Relance">
+                  {commercial && !row.needsFollowUp ? (
+                    <span className="cell-dash">—</span>
+                  ) : (
+                    <div className="follow-alert truncate-1">
+                      {row.needsFollowUp ? row.relanceLabel || "⚠️ Relance nécessaire" : ""}
+                    </div>
+                  )}
                 </td>
-                {commercial ? null : (
+                {commercial ? (
+                  <td className="col-actions">
+                    <details className="row-menu" name="prospect-row">
+                      <summary aria-label={`Actions ${row.companyName}`} aria-haspopup="menu">
+                        <i className="bi bi-three-dots-vertical" aria-hidden />
+                      </summary>
+                      <div className="query-pop-list" role="menu" onClick={closeMenuOnSelect}>
+                        <Link href={row.href}>
+                          <i className="bi bi-box-arrow-up-right" aria-hidden />
+                          Ouvrir la fiche
+                        </Link>
+                        {canDelete ? (
+                          <form
+                            action={deleteProspectAction.bind(null, row.id)}
+                            onSubmit={(event) => {
+                              const ok = window.confirm(
+                                `Supprimer définitivement « ${row.companyName} » ?\n\nCette action est irréversible.`,
+                              );
+                              if (!ok) event.preventDefault();
+                            }}
+                          >
+                            <button type="submit" className="is-danger">
+                              <i className="bi bi-trash3" aria-hidden />
+                              Supprimer
+                            </button>
+                          </form>
+                        ) : null}
+                      </div>
+                    </details>
+                  </td>
+                ) : (
                   <>
                     <td>{row.dormantLabel || "—"}</td>
                     <td>{row.archivedLabel || "—"}</td>
@@ -328,7 +434,7 @@ function ColumnHead({
         <summary aria-label={`Filtrer ${column.label}`}>
           <span>{column.label}</span>
           <i
-            className={`bi ${sorted ? (dir === "asc" ? "bi-caret-up-fill" : "bi-caret-down-fill") : "bi-chevron-down"}`}
+            className={`bi ${sorted ? (dir === "asc" ? "bi-caret-up-fill" : "bi-caret-down-fill") : dated || column.key === "industry" || column.key === "owner" ? "bi-chevron-expand" : "bi-chevron-down"}`}
             aria-hidden
           />
         </summary>

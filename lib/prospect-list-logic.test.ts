@@ -5,6 +5,8 @@ import {
   gridColumnOptions,
   groupProspects,
   COMMERCIAL_GRID_COLUMNS,
+  paginateRows,
+  toneIndex,
   needsFollowUpAlert,
   parseProspectListView,
   prospectListHref,
@@ -120,4 +122,26 @@ test("alerte relance uniquement à 3 mois sans action", () => {
     ),
     true,
   );
+});
+
+test("la liste des prospects se découpe en pages bornées", () => {
+  const rows = Array.from({ length: 53 }, (_, index) => index + 1);
+  const first = paginateRows(rows, undefined, 25);
+  assert.deepEqual([first.page, first.pages, first.from, first.to, first.total], [1, 3, 1, 25, 53]);
+  const last = paginateRows(rows, "3", 25);
+  assert.deepEqual([last.from, last.to, last.items.length], [51, 53, 3]);
+  // Page hors bornes ou illisible : ramenée à une page existante.
+  assert.equal(paginateRows(rows, "99", 25).page, 3);
+  assert.equal(paginateRows(rows, "abc", 25).page, 1);
+  assert.equal(paginateRows(rows, ["2", "3"], 25).page, 2);
+  const empty = paginateRows([], "4", 25);
+  assert.deepEqual([empty.page, empty.pages, empty.from, empty.to], [1, 1, 0, 0]);
+});
+
+test("la teinte d’un libellé est stable et dans les bornes", () => {
+  assert.equal(toneIndex("BTP", 6), toneIndex(" btp ", 6));
+  for (const label of ["BTP", "Gestion", "", "Télécoms"]) {
+    const tone = toneIndex(label, 6);
+    assert.ok(tone >= 0 && tone < 6);
+  }
 });

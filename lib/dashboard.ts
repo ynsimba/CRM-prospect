@@ -6,14 +6,18 @@ import { orgScope } from "@/lib/auth";
 import {
   PIPELINE_GOAL,
   DASHBOARD_KPI_DETAIL_LIMIT,
+  activeSinceWhere,
   agentPerformanceFromStatusCounts,
   allProspectsKpi,
   dashboardKpiDetailTitle,
+  dashboardPeriodStart,
   dormantProspectsKpi,
   followUpProspectsKpi,
+  monthTrendPercent,
   parseDashboardKpiId,
   type AgentPerformanceBreakdown,
   type DashboardKpi,
+  type DashboardPeriod,
   type DashboardKpiDetailRow,
   type DashboardKpiDetails,
 } from "@/lib/dashboard-logic";
@@ -47,7 +51,9 @@ export type DashboardStats = {
   pipelineMix: { open: number; won: number; lost: number };
   prospectKpis: DashboardKpi[];
   taskKpis: DashboardKpi[];
-  statusBars: { label: string; value: number }[];
+  /** Répartition affichée dans les graphiques, filtrée sur `period`. */
+  statusBars: { label: string; value: number; slug?: string }[];
+  period: DashboardPeriod;
   barTitle: string;
   barSubtitle: string;
   monthlyWinRates: { label: string; value: number }[];
@@ -132,13 +138,17 @@ export async function listDashboardKpiDetails(session: SessionPayload, kpiId: st
   return { items, truncated };
 }
 
-export async function getDashboardStats(session: SessionPayload): Promise<DashboardStats> {
+export async function getDashboardStats(
+  session: SessionPayload,
+  period: DashboardPeriod = "mois",
+): Promise<DashboardStats> {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const { end: monthEnd } = monthBounds(now.getFullYear(), now.getMonth());
   const yearAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
   const scope = { ...orgScope(session), ...ownedBy(session) };
   const visible = { ...scope, ...notArchivedWhere(now) };
+  const inPeriod = { ...visible, ...activeSinceWhere(dashboardPeriodStart(period, now)) };
 
   const [
     statuses,
@@ -158,6 +168,10 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
     myActiveProspects,
     inactiveTwoMonths,
     toFollowUp,
+    periodStatuses,
+    dormantAtMonthStart,
+    followUpAtMonthStart,
+    statusEntries,
   ] = await Promise.all([
     prisma.prospectStatus.findMany({
       where: { organizationId: session.organizationId },
@@ -206,7 +220,7 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
     }),
     prisma.prospect.groupBy({
       by: ["ownerId"],
-      where: visible,
+      where: inPeriod,
       _count: { _all: true },
     }),
     prisma.prospect.count({
@@ -221,15 +235,39 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
     prisma.prospect.count({
       where: { ...visible, ...relanceWhere(now) },
     }),
+    prisma.prospect.groupBy({
+      by: ["statusId"],
+      where: inPeriod,
+      _count: { _all: true },
+    }),
+    // Tendances « ce mois » : mêmes compteurs, évalués au 1er du mois.
+    prisma.prospect.count({
+      where: { ...visible, ...dormantWhere(monthStart, DASHBOARD_DORMANT_MONTHS) },
+    }),
+    prisma.prospect.count({
+      where: { ...visible, ...relanceWhere(monthStart) },
+    }),
+    prisma.prospectStatusHistory.groupBy({
+      by: ["statusId"],
+      where: {
+        ...orgScope(session),
+        occurredAt: { gte: monthStart },
+        ...(isSalesRole(session.role) ? { prospect: ownedBy(session) } : {}),
+      },
+      _count: { _all: true },
+    }),
   ]);
 
   const counts = new Map(groupedStatuses.map((item) => [item.statusId, item._count._all]));
   const ordered = SAFECHECK_STATUSES.map((spec) => statuses.find((item) => item.slug === spec.slug)).filter(
     (item): item is (typeof statuses)[number] => Boolean(item),
   );
-  const statusBars = ordered.map((status) => ({
+  const periodCounts = new Map(periodStatuses.map((item) => [item.statusId, item._count._all]));
+  const enteredThisMonth = new Map(statusEntries.map((item) => [item.statusId, item._count._all]));
+  const statusBars: DashboardStats["statusBars"] = ordered.map((status) => ({
     label: status.name,
-    value: counts.get(status.id) ?? 0,
+    value: periodCounts.get(status.id) ?? 0,
+    slug: status.slug,
   }));
 
   const ownerIds = [...new Set([...ownerRows, ...dormantRows, ...overdueByOwner].map((row) => row.ownerId).filter(Boolean))] as string[];
@@ -241,7 +279,7 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
     : [];
   const ownerName = new Map(owners.map((item) => [item.id, item.name]));
 
-  const byCommercial =
+  const byCommercial: DashboardStats["statusBars"] =
     isSalesRole(session.role)
       ? statusBars
       : ownerRows.map((row) => ({
@@ -268,18 +306,36 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
   const tones: DashboardKpi["tone"][] = ["blue", "red", "green"];
   const statusKpis = ordered
     .filter((status) => status.slug !== "opportunite" && status.slug !== "lead")
-    .map((status, index) => ({
-      id: `status:${status.id}`,
-      label: status.name,
-      hint: "Hors archives 15 j / 30 j",
-      value: counts.get(status.id) ?? 0,
-      tone: tones[index] ?? "navy",
-      href: `${prospectsHref}?status=${status.id}`,
-    }));
+    .map((status, index) => {
+      const value = counts.get(status.id) ?? 0;
+      // Un prospect peut repasser par le même statut : jamais plus d’entrées que de prospects présents.
+      const entered = Math.min(value, enteredThisMonth.get(status.id) ?? 0);
+      return {
+        id: `status:${status.id}`,
+        label: status.name,
+        hint: "Hors archives (15 / 30)",
+        value,
+        tone: tones[index] ?? "navy",
+        href: `${prospectsHref}?status=${status.id}`,
+        trend: monthTrendPercent(value, value - entered),
+      };
+    });
+  const allTrend = monthTrendPercent(myActiveProspects, myActiveProspects - createdThisMonth);
   const prospectKpis: DashboardKpi[] = [
-    allProspectsKpi(myActiveProspects, isSales ? { scope: "mine" } : { scope: "all", href: prospectsHref }),
-    dormantProspectsKpi(inactiveTwoMonths, isSales ? "/prospects?mine=1" : prospectsHref),
-    followUpProspectsKpi(toFollowUp, isSales ? "/prospects?mine=1" : prospectsHref),
+    allProspectsKpi(
+      myActiveProspects,
+      isSales ? { scope: "mine", trend: allTrend } : { scope: "all", href: prospectsHref, trend: allTrend },
+    ),
+    dormantProspectsKpi(
+      inactiveTwoMonths,
+      isSales ? "/prospects?mine=1" : prospectsHref,
+      monthTrendPercent(inactiveTwoMonths, dormantAtMonthStart),
+    ),
+    followUpProspectsKpi(
+      toFollowUp,
+      isSales ? "/prospects?mine=1" : prospectsHref,
+      monthTrendPercent(toFollowUp, followUpAtMonthStart),
+    ),
     ...statusKpis,
   ];
 
@@ -344,9 +400,10 @@ export async function getDashboardStats(session: SessionPayload): Promise<Dashbo
       },
     ],
     statusBars: byCommercial.length ? byCommercial : statusBars,
+    period,
     barTitle: isSales ? "Prospect" : "Par commercial",
     barSubtitle: isSales
-      ? "Répartition de mes entreprises par statut"
+      ? "Répartition de mes entreprises"
       : "Répartition des prospects par commercial (hors archives)",
     monthlyWinRates: last12MonthWinRates(closed, now),
     dormantBars,

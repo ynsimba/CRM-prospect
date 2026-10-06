@@ -18,6 +18,7 @@ const loadActiveUser = cache(async (userId: string, organizationId: string) =>
       name: true,
       lastSeenAt: true,
       photoUrl: true,
+      civility: true,
       sessionToken: true,
     },
   }),
@@ -56,6 +57,7 @@ export async function requireSession(): Promise<SessionPayload> {
     role: user.role,
     name: user.name,
     photoUrl: (user.photoUrl as string | null) ?? null,
+    civility: (user.civility as string | null) ?? null,
   };
 }
 

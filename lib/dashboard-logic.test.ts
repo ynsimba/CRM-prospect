@@ -4,15 +4,19 @@ import {
   dormantWhere,
   isDormantProspect,
   agentPerformanceFromStatusCounts,
+  activeSinceWhere,
   allProspectsKpi,
   dashboardKpiDetailTitle,
   dashboardKpiHeading,
+  dashboardPeriodStart,
   dashboardProspectTableColumns,
   dormantProspectsKpi,
   followUpProspectsKpi,
   isCommentableDashboardKpi,
   isRelanceDashboardKpi,
+  monthTrendPercent,
   parseDashboardKpiId,
+  parseDashboardPeriod,
   prospectPerformancePoints,
   PROSPECT_PERFORMANCE_POINTS,
   RELANCE_TABLE_COLUMNS,
@@ -105,7 +109,7 @@ test("widget Prospects dormants compte 2 mois d’inactivité", () => {
   const kpi = dormantProspectsKpi(4, "/prospects?mine=1");
   assert.equal(kpi.id, "dormant");
   assert.equal(kpi.label, "Prospects dormants");
-  assert.equal(kpi.hint, "Prospect ayant 2 mois d’inactivité");
+  assert.equal(kpi.hint, "Inactivité > 2 mois");
   assert.equal(kpi.value, 4);
   assert.equal(kpi.href, "/prospects?mine=1");
   assert.equal(kpi.tone, "orange");
@@ -115,7 +119,7 @@ test("widget A relancer compte les prospects à relancer", () => {
   const kpi = followUpProspectsKpi(1, "/prospects?mine=1");
   assert.equal(kpi.id, "relance");
   assert.equal(kpi.label, "A relancer");
-  assert.equal(kpi.hint, "Prospect à relancer");
+  assert.equal(kpi.hint, "Prospects à relancer");
   assert.equal(kpi.value, 1);
   assert.equal(kpi.href, "/prospects?mine=1");
   assert.equal(kpi.tone, "navy");
@@ -207,4 +211,28 @@ test("score agent = somme des points plafonnée à 100", () => {
   assert.equal(mix.percent, 100);
   assert.equal(mix.byStage.pipeline, 1);
   assert.equal(mix.byStage.finalise, 1);
+});
+
+test("la tendance du mois compare la valeur actuelle à celle du début de mois", () => {
+  assert.equal(monthTrendPercent(5, 4), 25);
+  assert.equal(monthTrendPercent(4, 4), 0);
+  assert.equal(monthTrendPercent(0, 0), 0);
+  assert.equal(monthTrendPercent(3, 0), 100);
+  assert.equal(monthTrendPercent(3, 4), -25);
+});
+
+test("la période des graphiques vaut « Ce mois » par défaut", () => {
+  assert.equal(parseDashboardPeriod(undefined), "mois");
+  assert.equal(parseDashboardPeriod("inconnu"), "mois");
+  assert.equal(parseDashboardPeriod("trimestre"), "trimestre");
+  assert.equal(parseDashboardPeriod(["annee", "tout"]), "annee");
+
+  const now = new Date(2026, 9, 6, 14, 30);
+  assert.deepEqual(dashboardPeriodStart("mois", now), new Date(2026, 9, 1));
+  assert.deepEqual(dashboardPeriodStart("trimestre", now), new Date(2026, 9, 1));
+  assert.deepEqual(dashboardPeriodStart("trimestre", new Date(2026, 4, 20)), new Date(2026, 3, 1));
+  assert.deepEqual(dashboardPeriodStart("annee", now), new Date(2026, 0, 1));
+  assert.equal(dashboardPeriodStart("tout", now), null);
+  assert.deepEqual(activeSinceWhere(null), {});
+  assert.equal(activeSinceWhere(new Date(2026, 9, 1)).OR?.length, 4);
 });

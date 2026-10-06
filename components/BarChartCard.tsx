@@ -1,120 +1,115 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
-import ChartLegend from "./ChartLegend";
 
-const width = 640;
-const height = 220;
-const pad = { top: 12, right: 12, bottom: 36, left: 48 };
-const chartW = width - pad.left - pad.right;
-const chartH = height - pad.top - pad.bottom;
-const BAR_COLORS = ["#f59e0b", "#fb923c", "#fbbf24", "#07a8a3", "#3b82f6", "#8b5cf6"];
+const pad = { top: 24, right: 12, bottom: 28, left: 34 };
+/** Deux tracés du même graphique : large (bureau) et compact (téléphone), choisis en CSS. */
+const LAYOUTS = [
+  { name: "wide", width: 680, height: 204, maxBar: 76, maxLabel: 14 },
+  { name: "compact", width: 340, height: 210, maxBar: 40, maxLabel: 9 },
+] as const;
+const BAR_COLORS = ["#fbb040", "#7b83eb", "#2f6fe4", "#ef4444", "#6cc24a", "#07a8a3"];
 
-function niceMax(value: number) {
-  if (value <= 0) return 5;
-  const mag = 10 ** Math.floor(Math.log10(value));
-  return Math.ceil(value / mag) * mag;
+/** Pas « rond » (1, 2, 5 × 10ⁿ) pour une graduation d’environ cinq lignes. */
+function niceStep(max: number) {
+  const rough = max / 5;
+  if (rough <= 1) return 1;
+  const mag = 10 ** Math.floor(Math.log10(rough));
+  const norm = rough / mag;
+  return (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
 }
 
-function shortLabel(name: string) {
-  return name.length <= 11 ? name : `${name.slice(0, 10)}…`;
+function shortLabel(name: string, max: number) {
+  return name.length <= max ? name : `${name.slice(0, max - 1)}…`;
 }
 
 type BarChartCardProps = {
   title: string;
   subtitle: string;
+  icon?: string;
   href?: string;
-  points: { label: string; value: number }[];
+  action?: ReactNode;
+  points: { label: string; value: number; color?: string }[];
 };
 
-export default function BarChartCard({ title, subtitle, href, points }: BarChartCardProps) {
-  const values = points.map((item) => item.value);
-  const maxY = niceMax(Math.max(...values, 0));
-  const count = Math.max(points.length, 1);
-  const gap = 8;
-  const barW = Math.max(8, (chartW - gap * (count + 1)) / count);
-  const ticks = [...new Set([0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxY * part)))];
-
-  function xAt(index: number) {
-    return pad.left + gap + index * (barW + gap);
-  }
-
-  function yAt(value: number) {
-    return pad.top + chartH - (value / maxY) * chartH;
-  }
+export default function BarChartCard({ title, subtitle, icon = "bi-bar-chart-fill", href, action, points }: BarChartCardProps) {
+  const max = Math.max(...points.map((item) => item.value), 0);
+  const step = niceStep(max);
+  // Une graduation de marge au-dessus de la plus haute barre, pour loger son étiquette.
+  const maxY = Math.max(5 * step, (Math.floor(max / step) + 1) * step);
+  const ticks = Array.from({ length: Math.round(maxY / step) + 1 }, (_, index) => index * step);
 
   return (
     <article className="dash-card chart-card">
-      <div className="donut-head">
-        <div>
+      <div className="chart-head">
+        <span className="chart-head-icon" aria-hidden>
+          <i className={`bi ${icon}`} />
+        </span>
+        <div className="chart-head-copy">
           <h3>{title}</h3>
           <p className="card-sub">{subtitle}</p>
         </div>
-        {href ? (
-          <Link href={href} className="icon-btn" aria-label="Ouvrir le détail">
-            <i className="bi bi-box-arrow-up-right" />
-          </Link>
-        ) : null}
+        {action ??
+          (href ? (
+            <Link href={href} className="icon-btn" aria-label="Ouvrir le détail">
+              <i className="bi bi-box-arrow-up-right" />
+            </Link>
+          ) : null)}
       </div>
-      <svg
-        className="area-chart"
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label={`${title} par statut`}
-      >
-        {ticks.map((tick) => (
-          <g key={`y-${tick}`}>
-            <line
-              x1={pad.left}
-              x2={width - pad.right}
-              y1={yAt(tick)}
-              y2={yAt(tick)}
-              stroke="#efefef"
-              strokeWidth="1"
-            />
-            <text x={pad.left - 8} y={yAt(tick) + 4} textAnchor="end" fontSize="11" fill="#b0b0b0">
-              {tick}
-            </text>
-          </g>
-        ))}
-        <line
-          x1={pad.left}
-          x2={width - pad.right}
-          y1={pad.top + chartH}
-          y2={pad.top + chartH}
-          stroke="#d8d8d8"
-          strokeWidth="1"
-        />
-        {points.map((point, index) => {
-          const x = xAt(index);
-          const y = yAt(point.value);
-          const h = pad.top + chartH - y;
-          return (
-            <rect
-              key={point.label}
-              x={x}
-              y={y}
-              width={barW}
-              height={Math.max(h, 0)}
-              rx="4"
-              fill={BAR_COLORS[index % BAR_COLORS.length]}
-              style={{ "--i": index } as CSSProperties}
-            />
-          );
-        })}
-        {points.map((point, index) => (
-          <text
-            key={`${point.label}-x`}
-            x={xAt(index) + barW / 2}
-            y={height - 8}
-            textAnchor="middle"
-            fontSize="10"
-            fill="#b0b0b0"
+      {LAYOUTS.map(({ name, width, height, maxBar, maxLabel }) => {
+        const chartW = width - pad.left - pad.right;
+        const chartH = height - pad.top - pad.bottom;
+        const band = chartW / Math.max(points.length, 1);
+        const barW = Math.min(maxBar, band * 0.56);
+        const baseline = pad.top + chartH;
+        const yAt = (value: number) => baseline - (value / maxY) * chartH;
+        return (
+          <svg
+            key={name}
+            className={`bar-chart is-${name}`}
+            viewBox={`0 0 ${width} ${height}`}
+            role="img"
+            aria-label={title}
           >
-            {shortLabel(point.label)}
-          </text>
-        ))}
-      </svg>
-      <ChartLegend items={[{ color: "#f59e0b", label: "Nombre" }]} />
+            {ticks.map((tick) => (
+              <g key={`y-${tick}`}>
+                <line
+                  className={tick === 0 ? "bar-chart-axis" : "bar-chart-grid"}
+                  x1={pad.left}
+                  x2={width - pad.right}
+                  y1={yAt(tick)}
+                  y2={yAt(tick)}
+                />
+                <text className="bar-chart-tick" x={pad.left - 12} y={yAt(tick) + 4} textAnchor="end">
+                  {tick}
+                </text>
+              </g>
+            ))}
+            {points.map((point, index) => {
+              const x = pad.left + band * index + (band - barW) / 2;
+              const y = yAt(point.value);
+              const r = Math.min(6, (baseline - y) / 2);
+              const cx = x + barW / 2;
+              return (
+                <g key={point.label} style={{ "--i": index } as CSSProperties}>
+                  {point.value > 0 ? (
+                    <path
+                      d={`M${x} ${baseline} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + barW - r} Q${x + barW} ${y} ${x + barW} ${y + r} V${baseline} Z`}
+                      fill={point.color ?? BAR_COLORS[index % BAR_COLORS.length]}
+                    />
+                  ) : null}
+                  <circle className="bar-chart-pill" cx={cx} cy={y - 13} r="10" />
+                  <text className="bar-chart-value" x={cx} y={y - 9.5} textAnchor="middle">
+                    {point.value}
+                  </text>
+                  <text className="bar-chart-label" x={cx} y={height - 8} textAnchor="middle">
+                    {shortLabel(point.label, maxLabel)}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        );
+      })}
     </article>
   );
 }

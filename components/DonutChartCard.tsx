@@ -1,8 +1,8 @@
-import Link from "next/link";
+import type { ReactNode } from "react";
 import CountUp from "./CountUp";
 
-const size = 180;
-const stroke = 28;
+const size = 200;
+const stroke = 38;
 const radius = (size - stroke) / 2;
 const circumference = 2 * Math.PI * radius;
 
@@ -13,72 +13,44 @@ type DonutItem = {
 };
 
 type DonutChartCardProps = {
-  open?: number;
-  won?: number;
-  lost?: number;
-  title?: string;
+  title: string;
+  subtitle?: string;
   centerLabel?: string;
-  items?: DonutItem[];
+  action?: ReactNode;
+  items: DonutItem[];
 };
 
-export default function DonutChartCard({
-  open = 0,
-  won = 0,
-  lost = 0,
-  title = "Statuts",
-  centerLabel,
-  items,
-}: DonutChartCardProps) {
-  const raw: DonutItem[] =
-    items && items.length > 0
-      ? items
-      : [
-          { value: open, color: "#fcb040", label: "Pipeline" },
-          { value: won, color: "#12a197", label: "Finalisé" },
-          { value: lost, color: "#2f3990", label: "Rejeté" },
-        ];
-
-  const total = raw.reduce((sum, item) => sum + item.value, 0);
-  const denom = total > 0 ? total : 1;
-  const segments = raw.map((item) => ({
-    ...item,
-    share: total > 0 ? item.value / denom : 0,
-  }));
-
-  const donutSegments = segments.map((segment, index) => {
-    const length = segment.share * circumference;
-    const offset = segments.slice(0, index).reduce((sum, item) => sum + item.share * circumference, 0);
-    return { ...segment, length, offset };
+export default function DonutChartCard({ title, subtitle, centerLabel, action, items }: DonutChartCardProps) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  const segments = items.map((item, index) => {
+    const share = total > 0 ? item.value / total : 0;
+    const offset = items.slice(0, index).reduce((sum, previous) => sum + previous.value, 0);
+    return {
+      ...item,
+      share,
+      length: share * circumference,
+      offset: total > 0 ? (offset / total) * circumference : 0,
+    };
   });
 
   return (
     <article className="dash-card chart-card donut-card-rich">
-      <div className="donut-head">
-        <h3>{title}</h3>
-        <Link href="/pipeline" className="icon-btn" aria-label="Ouvrir le pipeline">
-          <i className="bi bi-gear" />
-        </Link>
+      <div className="chart-head">
+        <span className="chart-head-icon" aria-hidden>
+          <i className="bi bi-pie-chart" />
+        </span>
+        <div className="chart-head-copy">
+          <h3>{title}</h3>
+          {subtitle ? <p className="card-sub">{subtitle}</p> : null}
+        </div>
+        {action}
       </div>
 
       <div className="donut-rich-body">
         <div className="donut-wrap">
-          <svg
-            className="donut-svg"
-            width={size}
-            height={size}
-            viewBox={`0 0 ${size} ${size}`}
-            role="img"
-            aria-label="Répartition globale"
-          >
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="#f3f3f3"
-              strokeWidth={stroke}
-            />
-            {donutSegments.map((segment) => (
+          <svg className="donut-svg" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={title}>
+            <circle className="donut-track" cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} />
+            {segments.map((segment) => (
               <circle
                 key={`${segment.label}-${segment.color}`}
                 className="donut-seg"
@@ -108,7 +80,9 @@ export default function DonutChartCard({
               <span className="donut-stats-swatch" style={{ background: segment.color }} />
               <span className="donut-stats-label">{segment.label}</span>
               <span className="donut-stats-value">{segment.value}</span>
-              <span className="donut-stats-pct">{Math.round(segment.share * 100)}%</span>
+              <span className={`donut-stats-pct ${segment.value > 0 ? "is-active" : ""}`}>
+                {Math.round(segment.share * 100)}%
+              </span>
             </li>
           ))}
         </ul>

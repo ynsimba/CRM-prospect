@@ -5,6 +5,7 @@ import ConvertProspectForm from "@/components/ConvertProspectForm";
 import ActivityForm from "@/components/ActivityForm";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import ProspectEditModal from "@/components/ProspectEditModal";
+import ProspectDeleteButton from "@/components/ProspectDeleteButton";
 import TaskForm from "@/components/TaskForm";
 import { advanceTaskAction } from "@/app/actions/activities";
 import { updateProspectStatusAction } from "@/app/actions/prospects";
@@ -29,6 +30,7 @@ import {
   type ProspectProfileField,
 } from "@/lib/prospect-edit-policy";
 import { getProspect } from "@/lib/prospects";
+import { isAdminRole } from "@/lib/roles";
 import type { Row } from "@/lib/prisma";
 
 export default async function ProspectDetailPage({
@@ -48,6 +50,7 @@ export default async function ProspectDetailPage({
   }
 
   const canManage = roleHasPermission(session.role, PERMISSIONS.prospectsManage);
+  const canDelete = isAdminRole(session.role);
   const canConvert = roleHasPermission(session.role, PERMISSIONS.pipelineManage);
   const canActivities = roleHasPermission(session.role, PERMISSIONS.activitiesManage);
   const hasOpenOpportunity = prospect.opportunities.some((item: Row) => item.status === "OPEN");
@@ -95,9 +98,17 @@ export default async function ProspectDetailPage({
             {incomplete ? " · Fiche incomplète" : ""}
           </p>
         </div>
-        <Link href="/prospects" className="table-action">
-          Retour à la liste
-        </Link>
+        <div className="page-head-actions">
+          {canDelete ? (
+            <ProspectDeleteButton
+              prospectId={prospect.id}
+              prospectName={fullName(prospect.firstName, prospect.lastName)}
+            />
+          ) : null}
+          <Link href="/prospects" className="table-action">
+            Retour à la liste
+          </Link>
+        </div>
       </div>
 
       <div className="row g-3">

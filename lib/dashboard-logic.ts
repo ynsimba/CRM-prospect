@@ -21,7 +21,51 @@ export type DashboardKpi = {
   href: string;
   suffix?: string;
   icon?: string;
+  /** Évolution en % depuis le début du mois (positif = hausse). */
+  trend?: number;
 };
+
+/** Évolution en % entre la valeur en début de mois et la valeur actuelle. */
+export function monthTrendPercent(current: number, previous: number) {
+  if (current === previous) return 0;
+  if (previous <= 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+export const DASHBOARD_PERIODS = [
+  { id: "mois", label: "Ce mois" },
+  { id: "trimestre", label: "Ce trimestre" },
+  { id: "annee", label: "Cette année" },
+  { id: "tout", label: "Tout" },
+] as const;
+
+export type DashboardPeriod = (typeof DASHBOARD_PERIODS)[number]["id"];
+
+export function parseDashboardPeriod(value?: string | string[] | null): DashboardPeriod {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return DASHBOARD_PERIODS.find((item) => item.id === raw)?.id ?? "mois";
+}
+
+/** Début de la période calendaire en cours ; `null` = pas de borne (« Tout »). */
+export function dashboardPeriodStart(period: DashboardPeriod, now = new Date()) {
+  if (period === "mois") return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (period === "trimestre") return new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  if (period === "annee") return new Date(now.getFullYear(), 0, 1);
+  return null;
+}
+
+/** Prospects créés ou suivis depuis `start` (même ancrage que l’inactivité). */
+export function activeSinceWhere(start: Date | null) {
+  if (!start) return {};
+  return {
+    OR: [
+      { createdAt: { gte: start } },
+      { lastActionAt: { gte: start } },
+      { firstContactAt: { gte: start } },
+      { lastContactAt: { gte: start } },
+    ],
+  };
+}
 
 export type DashboardKpiDetailRow = {
   id: string;
@@ -89,7 +133,7 @@ export function dashboardKpiDetailTitle(companyName: string | null | undefined, 
 
 export function allProspectsKpi(
   count: number,
-  options?: { scope?: "mine" | "all"; href?: string },
+  options?: { scope?: "mine" | "all"; href?: string; trend?: number },
 ) {
   if (options?.scope === "all") {
     return {
@@ -99,6 +143,7 @@ export function allProspectsKpi(
       value: count,
       tone: "brand" as const,
       href: options.href ?? "/direction/prospects",
+      trend: options.trend,
     };
   }
   return {
@@ -108,29 +153,32 @@ export function allProspectsKpi(
     value: count,
     tone: "brand" as const,
     href: options?.href ?? "/prospects?mine=1",
+    trend: options?.trend,
   };
 }
 
-export function dormantProspectsKpi(count: number, href: string) {
+export function dormantProspectsKpi(count: number, href: string, trend?: number) {
   return {
     id: "dormant",
     label: "Prospects dormants",
-    hint: "Prospect ayant 2 mois d’inactivité",
+    hint: "Inactivité > 2 mois",
     value: count,
     tone: "orange" as const,
     href,
+    trend,
   };
 }
 
-export function followUpProspectsKpi(count: number, href: string) {
+export function followUpProspectsKpi(count: number, href: string, trend?: number) {
   return {
     id: "relance",
     label: "A relancer",
-    hint: "Prospect à relancer",
+    hint: "Prospects à relancer",
     value: count,
     tone: "navy" as const,
     href,
     icon: "bi-exclamation-triangle-fill",
+    trend,
   };
 }
 

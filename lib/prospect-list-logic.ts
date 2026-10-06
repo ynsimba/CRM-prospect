@@ -274,30 +274,52 @@ export type GridFilterQuery = {
 export type GridFilterOption = { value: string; label: string };
 
 export const COMMERCIAL_GRID_COLUMNS = [
-  { key: "company", label: "Nom entreprise", sort: "company", filter: "company" },
+  { key: "company", label: "Entreprise", sort: "company", filter: "company" },
   { key: "industry", label: "Secteur", sort: "industry", filter: "industry" },
   { key: "address", label: "Adresse", sort: "address", filter: "address" },
-  { key: "lastAction", label: "Date dernière action", sort: "lastAction", filter: "lastAction" },
+  { key: "lastAction", label: "Dernière action", sort: "lastAction", filter: "lastAction" },
   { key: "meeting", label: "Date RDV", sort: "meeting", filter: "meeting" },
   { key: "status", label: "Statut", sort: "status", filter: "status" },
   { key: "notes", label: "Commentaire statut", sort: "notes", filter: "notes" },
-  { key: "owner", label: "Commercial responsable", sort: "owner", filter: "owner" },
-  { key: "followUp", label: "Alerte Relance", sort: "followUp", filter: "followUp" },
+  { key: "owner", label: "Responsable", sort: "owner", filter: "owner" },
+  { key: "followUp", label: "Alerte relance", sort: "followUp", filter: "followUp" },
 ] as const;
 
 export type GridColumnKey = (typeof COMMERCIAL_GRID_COLUMNS)[number]["key"];
 
 export const GRID_COL_WIDTHS: Record<GridColumnKey, number> = {
-  company: 200,
-  industry: 120,
-  address: 200,
-  lastAction: 148,
-  meeting: 118,
-  status: 132,
-  notes: 168,
-  owner: 196,
-  followUp: 148,
+  company: 170,
+  industry: 88,
+  address: 126,
+  lastAction: 120,
+  meeting: 96,
+  status: 110,
+  notes: 140,
+  owner: 136,
+  followUp: 114,
 };
+
+export const PROSPECT_PAGE_SIZE = 25;
+
+/** Découpe la liste en pages ; une page hors bornes est ramenée à la plus proche. */
+export function paginateRows<T>(rows: T[], requested?: string | string[], size = PROSPECT_PAGE_SIZE) {
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total / size));
+  const parsed = Number.parseInt(firstSearchValue(requested) ?? "1", 10);
+  const page = Math.min(pages, Math.max(1, Number.isFinite(parsed) ? parsed : 1));
+  const start = (page - 1) * size;
+  const items = rows.slice(start, start + size);
+  return { items, page, pages, total, from: total === 0 ? 0 : start + 1, to: start + items.length };
+}
+
+/** Indice de teinte stable pour un libellé (pastille d’entreprise, étiquette de secteur). */
+export function toneIndex(label: string, tones: number) {
+  let hash = 0;
+  for (const char of label.trim().toLowerCase()) {
+    hash = (hash * 31 + char.codePointAt(0)!) % 9973;
+  }
+  return hash % tones;
+}
 
 export function uniqueTextOptions(values: string[], emptyLabel = "Vide") {
   const seen = new Set<string>();

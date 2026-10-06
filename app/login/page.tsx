@@ -1,54 +1,85 @@
 import Image from "next/image";
 import LoginForm from "./LoginForm";
 
+const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL || "https://hub.safecheckrdc.com/";
+
 const HIGHLIGHTS = [
-  { icon: "bi-kanban", title: "Pipeline en temps réel", text: "Chaque prospect, de la première prise de contact à la signature." },
-  { icon: "bi-alarm", title: "Relances maîtrisées", text: "Tâches et rappels partagés entre agents et Direction." },
-  { icon: "bi-graph-up-arrow", title: "Pilotage Direction", text: "Suivi des équipes et rapports consolidés." },
+  { icon: "bi-kanban", title: "Pipeline commercial", text: "Temps réel" },
+  { icon: "bi-alarm", title: "Relances et tâches", text: "Maîtrisées" },
+  { icon: "bi-graph-up-arrow", title: "Pilotage Direction", text: "Consolidé" },
 ];
 
 export default function LoginPage() {
   return (
     <main className="login-page">
-      <section className="login-brand">
-        <Image
-          src="/logo.png"
-          alt="Safecheck RDC"
-          className="login-logo"
-          width={1495}
-          height={494}
-          sizes="(max-width: 991.98px) 122px, 170px"
-          loading="eager"
-        />
-        <div className="login-brand-inner" aria-hidden="true">
-          <p className="login-brand-kicker">Safecheck RDC · SafeCom</p>
-          <h2 className="login-brand-title">Pilotez votre prospection commerciale.</h2>
-          <ul className="login-brand-list">
-            {HIGHLIGHTS.map((item) => (
-              <li key={item.title}>
-                <span className="login-brand-icon">
-                  <i className={`bi ${item.icon}`} />
-                </span>
-                <span>
-                  <strong>{item.title}</strong>
-                  {item.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <div className="login-frame">
+        <aside className="login-visual">
+          <Image
+            className="login-photo"
+            src="/login-commercial.jpg"
+            alt=""
+            width={1400}
+            height={2100}
+            sizes="(max-width: 900px) 1px, 420px"
+          />
+          <div className="login-shape login-shape-ring" aria-hidden="true" />
+          <div className="login-shape login-shape-glow" aria-hidden="true" />
+          <div className="login-pitch">
+            <p className="login-kicker">Pilotage commercial</p>
+            <h1 className="login-pitch-title">
+              Une prospection
+              <br />
+              <em>plus simple,</em>
+              <br />
+              plus efficace.
+            </h1>
+            <p className="login-lead">
+              Suivez vos prospects, gérez vos relances
+              <br />
+              et pilotez vos ventes, en toute simplicité.
+            </p>
+            <ul className="login-highlights">
+              {HIGHLIGHTS.map((item) => (
+                <li key={item.title}>
+                  <span className="login-highlight-icon">
+                    <i className={`bi ${item.icon}`} aria-hidden="true" />
+                  </span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.text}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
 
-      <section className="login-panel">
-        <div className="login-panel-inner">
-          <h1 className="login-title">Connexion</h1>
-          <p className="login-sub">Accédez à votre espace de prospection.</p>
-          <LoginForm />
-          <p className="login-footnote">
-            Mot de passe oublié ? Contactez la Direction pour le réinitialiser.
-          </p>
-        </div>
-      </section>
+        <section className="login-panel" aria-label="Connexion">
+          <div className="login-brand-row">
+            <Image
+              src="/logo-navy.png"
+              alt="Safecheck RDC"
+              className="login-logo login-logo-light"
+              width={1495}
+              height={494}
+              sizes="240px"
+              loading="eager"
+            />
+            <Image
+              src="/logo.png"
+              alt="Safecheck RDC"
+              className="login-logo login-logo-dark"
+              width={1495}
+              height={494}
+              sizes="240px"
+              loading="eager"
+            />
+            <p className="login-sub-brand">Prospection commerciale</p>
+          </div>
+
+          <LoginForm hubUrl={HUB_URL} />
+        </section>
+      </div>
     </main>
   );
 }

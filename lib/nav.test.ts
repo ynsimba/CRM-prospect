@@ -5,6 +5,8 @@ import {
   SALES_NAV,
   extraMainNav,
   isNavActive,
+  mobileQuickAction,
+  mobileTabsForRole,
   navForRole,
   showCommercialModule,
   showDirectionModule,
@@ -19,7 +21,7 @@ test("un délégué commercial n’a que les modules du quotidien", () => {
       "Tableau de bord",
       "Tous les prospects",
       "Tous les contacts",
-      "Ajouter contact",
+      "Ajouter un contact",
       "Ajouter un prospect",
       "Suivi prospect",
       "Mes tâches",
@@ -104,4 +106,21 @@ test("modules Airtable : direction masquée au délégué commercial", () => {
   assert.equal(isNavActive("/direction/taches/departement", "/direction/taches/departement", DIRECTION_NAV), true);
   assert.ok(extraMainNav("OWNER").some((item) => item.href === "/pipeline"));
   assert.ok(!extraMainNav("OWNER").some((item) => item.href === "/prospects"));
+});
+
+test("la barre d’onglets mobile suit l’espace de travail du rôle", () => {
+  assert.deepEqual(
+    mobileTabsForRole("SALES").map((item) => item.href),
+    ["/", "/prospects", "/taches"],
+  );
+  assert.equal(mobileQuickAction("SALES").href, "/prospects/nouveau");
+  assert.deepEqual(
+    mobileTabsForRole("MANAGER").map((item) => item.href),
+    ["/direction", "/direction/prospects", "/direction/taches"],
+  );
+  assert.equal(mobileQuickAction("MANAGER").href, "/direction/assignation");
+  // L’onglet Tâches de la Direction ne s’allume pas sur la fiche d’un prospect.
+  const tabs = mobileTabsForRole("MANAGER");
+  assert.equal(isNavActive("/direction/prospects", "/direction/prospects", tabs), true);
+  assert.equal(isNavActive("/direction", "/direction/prospects", tabs), false);
 });

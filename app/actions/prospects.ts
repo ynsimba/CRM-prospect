@@ -5,9 +5,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { auditAs } from "@/lib/audit";
-import { emptyToNull, parseCivility, parsePersonCategory, readOptionalId } from "@/lib/crm";
+import { emptyToNull, fullName, parseCivility, parsePersonCategory, readOptionalId } from "@/lib/crm";
 import { PERMISSIONS } from "@/lib/permissions";
-import { createProspect, updateProspectRow, updateProspectStatus, updateProspectProfile } from "@/lib/prospects";
+import { isAdminRole } from "@/lib/roles";
+import {
+  createProspect,
+  deleteProspect,
+  updateProspectRow,
+  updateProspectStatus,
+  updateProspectProfile,
+} from "@/lib/prospects";
 
 export type ProspectFormState = {
   error?: string;
@@ -214,4 +221,28 @@ export async function updateProspectProfileAction(
       error: error instanceof Error ? error.message : "Impossible de mettre à jour la fiche.",
     };
   }
+}
+
+export async function deleteProspectAction(prospectId: string) {
+  const session = await requirePermission(PERMISSIONS.prospectsManage);
+  if (!isAdminRole(session.role)) {
+    throw new Error("Seuls les administrateurs peuvent supprimer un prospect.");
+  }
+
+  const prospect = await deleteProspect(session, prospectId);
+  await auditAs(session, {
+    action: "prospect.delete",
+    entity: "Prospect",
+    entityId: prospect.id,
+    summary: `Suppression de ${fullName(prospect.firstName, prospect.lastName)}${prospect.displayCode ? ` (${prospect.displayCode})` : ""}`,
+  });
+  revalidatePath("/prospects");
+  revalidatePath("/suivi");
+  revalidatePath("/interface");
+  revalidatePath("/archives");
+  revalidatePath("/direction");
+  revalidatePath("/direction/prospects");
+  revalidatePath("/direction/archives");
+  revalidatePath("/");
+  redirect("/prospects");
 }

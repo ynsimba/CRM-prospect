@@ -2,6 +2,8 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import Shell from "./Shell";
 import ProfileCard from "./ProfileCard";
+import PerformanceCard from "./PerformanceCard";
+import PeriodSelect from "./PeriodSelect";
 import MetricGrid from "./MetricGrid";
 import BarChartCard from "./BarChartCard";
 import AreaChartCard from "./AreaChartCard";
@@ -11,11 +13,18 @@ import AnalyticsCard from "./AnalyticsCard";
 import RelanceKpiTable from "./RelanceKpiTable";
 import type { DashboardStats } from "@/lib/dashboard";
 
+const STATUS_COLORS: Record<string, string> = {
+  opportunite: "#fbb040",
+  lead: "#7b83eb",
+  pipeline: "#2f6fe4",
+  rejete: "#ef4444",
+  finalise: "#6cc24a",
+};
+const SERIES_COLORS = ["#fbb040", "#7b83eb", "#2f6fe4", "#ef4444", "#6cc24a", "#07a8a3"];
+
 type DashboardProps = {
   userName: string;
-  userInitials: string;
   civility?: string | null;
-  photoUrl?: string | null;
   stats: DashboardStats;
   activeHref?: string;
   showPerformance?: boolean;
@@ -23,18 +32,16 @@ type DashboardProps = {
 
 export default function Dashboard({
   userName,
-  userInitials,
   civility,
-  photoUrl = null,
   stats,
   activeHref = "/",
   showPerformance = true,
 }: DashboardProps) {
-  const summaryKpis = stats.prospectKpis.slice(0, 3);
-  const statusDonut = stats.statusBars.map((point, index) => ({
+  const byStatus = stats.barTitle === "Prospect";
+  const series = stats.statusBars.map((point, index) => ({
     label: point.label,
     value: point.value,
-    color: ["#f59e0b", "#22c55e", "#3b82f6", "#ef4444", "#8b5cf6", "#07a8a3"][index % 6],
+    color: (point.slug && STATUS_COLORS[point.slug]) || SERIES_COLORS[index % SERIES_COLORS.length],
   }));
 
   return (
@@ -42,19 +49,11 @@ export default function Dashboard({
       <div className="container-fluid p-0 dashboard-home">
         <div className="row g-3">
           <div className="col-12" style={{ "--i": 0 } as CSSProperties}>
-            <ProfileCard
-              name={userName}
-              initials={userInitials}
-              civility={civility}
-              photoUrl={photoUrl}
-              overdue={stats.overdue}
-              agentPerformance={stats.agentPerformance}
-              showPerformance={showPerformance}
-            />
+            <ProfileCard name={userName} civility={civility} overdue={stats.overdue} />
           </div>
 
           <div className="col-12" style={{ "--i": 1 } as CSSProperties}>
-            <MetricGrid metrics={summaryKpis} variant="summary" />
+            <MetricGrid metrics={stats.prospectKpis} variant="summary" />
           </div>
 
           {stats.teamProspects ? (
@@ -84,20 +83,19 @@ export default function Dashboard({
 
           <div className="col-12 col-lg-7" style={{ "--i": 3 } as CSSProperties}>
             <BarChartCard
-              title={stats.barTitle === "Prospect" ? "Prospects par statut" : stats.barTitle}
+              title={byStatus ? "Prospects par statut" : stats.barTitle}
               subtitle={stats.barSubtitle}
-              href={stats.prospectsHref}
-              points={stats.statusBars}
+              action={<PeriodSelect value={stats.period} label="Période du graphique" />}
+              points={series}
             />
           </div>
           <div className="col-12 col-lg-5" style={{ "--i": 4 } as CSSProperties}>
             <DonutChartCard
               title="Répartition globale"
+              subtitle={byStatus ? "Statut de mes prospects" : "Prospects par commercial"}
               centerLabel="Prospects"
-              items={statusDonut.length > 0 ? statusDonut : undefined}
-              open={stats.pipelineMix.open}
-              won={stats.pipelineMix.won}
-              lost={stats.pipelineMix.lost}
+              action={<PeriodSelect value={stats.period} label="Période de la répartition" />}
+              items={series}
             />
           </div>
 
@@ -123,42 +121,25 @@ export default function Dashboard({
           ) : null}
 
           <div className="col-12" style={{ "--i": 7 } as CSSProperties}>
-            <div className="section-head">
-              <div>
-                <h3>Mes tâches</h3>
-                <p className="card-sub">Suivi rapide de votre charge de travail</p>
+            <article className="dash-card tasks-card">
+              <div className="chart-head">
+                <span className="chart-head-icon is-large" aria-hidden>
+                  <i className="bi bi-check2-square" />
+                </span>
+                <div className="chart-head-copy">
+                  <h3>Mes tâches</h3>
+                  <p className="card-sub">Suivi de mes activités</p>
+                </div>
+                <Link href="/taches" className="btn-tasks">
+                  Voir toutes les tâches
+                  <i className="bi bi-arrow-right" aria-hidden />
+                </Link>
               </div>
-              <Link href="/taches" className="btn-download">
-                Voir toutes les tâches
-                <i className="bi bi-arrow-right" aria-hidden />
-              </Link>
-            </div>
-            <MetricGrid metrics={stats.taskKpis} variant="tasks" />
+              <MetricGrid metrics={stats.taskKpis} variant="tasks" />
+            </article>
           </div>
 
-          {stats.prospectKpis.length > 3 ? (
-            <div className="col-12" style={{ "--i": 8 } as CSSProperties}>
-              <article className="dash-card">
-                <div className="company-head">
-                  <div>
-                    <h3>Tous les compteurs</h3>
-                    <p className="card-sub">
-                      {stats.teamProspects
-                        ? "Tous les prospects saisis par les agents — cliquer un compteur pour commenter."
-                        : "Compteurs Safecheck — Opportunité, Lead, Pipeline, Rejeté, Finalisé."}
-                    </p>
-                  </div>
-                  <Link href={stats.prospectsHref} className="btn-download">
-                    Voir les prospects
-                    <i className="bi bi-box-arrow-up-right" aria-hidden />
-                  </Link>
-                </div>
-                <MetricGrid metrics={stats.prospectKpis} variant="summary" />
-              </article>
-            </div>
-          ) : null}
-
-          <div className="col-12 col-lg-8" style={{ "--i": 9 } as CSSProperties}>
+          <div className="col-12 col-lg-8" style={{ "--i": 8 } as CSSProperties}>
             <AreaChartCard
               title="Évolution du statut pipeline mensuel"
               subtitle="Taux de réussite des affaires clôturées"
@@ -169,16 +150,21 @@ export default function Dashboard({
               ariaLabel="Taux de réussite pipeline par mois"
             />
           </div>
-          <div className="col-12 col-lg-4" style={{ "--i": 10 } as CSSProperties}>
+          <div className="col-12 col-lg-4" style={{ "--i": 9 } as CSSProperties}>
             <AnalyticsCard overdue={stats.overdue} series={stats.analytics} />
           </div>
-          <div className="col-12" style={{ "--i": 11 } as CSSProperties}>
+          <div className={showPerformance ? "col-12 col-lg-8" : "col-12"} style={{ "--i": 10 } as CSSProperties}>
             <DataGraphicCard
               pipelinePercent={stats.pipelinePercent}
               winPercent={stats.winPercent}
               goal={stats.pipelineGoal}
             />
           </div>
+          {showPerformance ? (
+            <div className="col-12 col-lg-4" style={{ "--i": 11 } as CSSProperties}>
+              <PerformanceCard agentPerformance={stats.agentPerformance} />
+            </div>
+          ) : null}
         </div>
       </div>
     </Shell>

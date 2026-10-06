@@ -11,7 +11,7 @@ import type { SessionPayload } from "@/lib/session";
 import { archivedWhere, notArchivedWhere } from "@/lib/safecheck";
 import { findCompanyByName } from "@/lib/companies";
 import { nextDisplayCode, notifyDirectorsOfFinalStatus, recordStatusHistory } from "@/lib/status-history";
-import { isSalesRole } from "@/lib/roles";
+import { isSalesRole, isAdminRole } from "@/lib/roles";
 import { autoAssignNewProspect, recordOwnerChange } from "@/lib/agents";
 import {
   filterProspectProfilePatch,
@@ -539,4 +539,22 @@ export async function updateProspectProfile(
 
   await refreshProspectScore(session, updated.id);
   return updated;
+}
+
+/** Suppression définitive — réservée aux administrateurs (Admin / Super admin). */
+export async function deleteProspect(session: SessionPayload, id: string) {
+  if (!isAdminRole(session.role)) {
+    throw new Error("Seuls les administrateurs peuvent supprimer un prospect.");
+  }
+
+  const prospect = await prisma.prospect.findFirst({
+    where: { id, ...orgScope(session) },
+    select: { id: true, firstName: true, lastName: true, displayCode: true },
+  });
+  if (!prospect) {
+    throw new Error("Prospect introuvable.");
+  }
+
+  await prisma.prospect.delete({ where: { id: prospect.id } });
+  return prospect;
 }

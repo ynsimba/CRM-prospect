@@ -17,6 +17,7 @@ export type SessionPayload = {
   sessionToken: string;
   /** Enriched by requireSession from the database (not stored in the JWT). */
   photoUrl?: string | null;
+  civility?: string | null;
 };
 
 function getSecret() {

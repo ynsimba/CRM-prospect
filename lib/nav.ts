@@ -31,13 +31,13 @@ export const CONFIG_NAV: NavItem[] = [
 
 export const SALES_NAV: NavItem[] = [
   { href: "/", icon: "bi-house", label: "Tableau de bord" },
-  { href: "/prospects", icon: "bi-people", label: "Tous les prospects" },
+  { href: "/prospects", icon: "bi-person-vcard", label: "Tous les prospects" },
   { href: "/contacts", icon: "bi-person-lines-fill", label: "Tous les contacts" },
-  { href: "/contacts/nouveau", icon: "bi-person-plus", label: "Ajouter contact" },
-  { href: "/prospects/nouveau", icon: "bi-person-plus-fill", label: "Ajouter un prospect" },
-  { href: "/suivi", icon: "bi-eye", label: "Suivi prospect" },
-  { href: "/taches", icon: "bi-check2-square", label: "Mes tâches" },
-  { href: "/notes", icon: "bi-journal-richtext", label: "Mes notes" },
+  { href: "/contacts/nouveau", icon: "bi-person-plus", label: "Ajouter un contact" },
+  { href: "/prospects/nouveau", icon: "bi-person-circle", label: "Ajouter un prospect" },
+  { href: "/suivi", icon: "bi-binoculars", label: "Suivi prospect" },
+  { href: "/taches", icon: "bi-card-checklist", label: "Mes tâches" },
+  { href: "/notes", icon: "bi-chat-left", label: "Mes notes" },
   { href: "/archives", icon: "bi-archive", label: "Archives" },
 ];
 
@@ -58,7 +58,7 @@ export const DIRECTION_NAV: NavItem[] = [
 export const SIDEBAR_MODULES: NavItem[] = [
   { href: "/taches", icon: "bi-bullseye", label: "Mes Tâches" },
   { href: "/notes", icon: "bi-journal-text", label: "Mes notes" },
-  { href: "/notifications", icon: "bi-chat-dots", label: "Fil de Discussion" },
+  { href: "/notifications", icon: "bi-check2-circle", label: "Fil de Discussion" },
 ];
 
 const COMMERCIAL_HREFS = new Set(COMMERCIAL_NAV.map((item) => item.href));
@@ -108,6 +108,30 @@ export function visibleSidebarModules(role?: Role) {
     items = items.filter((item) => !COMMERCIAL_HREFS.has(item.href));
   }
   return items;
+}
+
+/** Barre d’onglets mobile : trois destinations du quotidien, le reste passe par « Menu ». */
+export function mobileTabsForRole(role?: Role): NavItem[] {
+  if (role === "MANAGER") {
+    return [
+      { href: "/direction", icon: "bi-house-door", label: "Accueil" },
+      { href: "/direction/prospects", icon: "bi-person-vcard", label: "Prospects" },
+      { href: "/direction/taches", icon: "bi-list-check", label: "Tâches" },
+    ];
+  }
+  return [
+    { href: "/", icon: "bi-house-door", label: "Accueil" },
+    { href: "/prospects", icon: "bi-person-vcard", label: "Prospects" },
+    { href: "/taches", icon: "bi-card-checklist", label: "Tâches" },
+  ];
+}
+
+/** Bouton central de la barre d’onglets : l’action la plus fréquente du rôle. */
+export function mobileQuickAction(role?: Role): NavItem {
+  if (role === "MANAGER") {
+    return { href: "/direction/assignation", icon: "bi-plus-lg", label: "Assigner une tâche" };
+  }
+  return { href: "/prospects/nouveau", icon: "bi-plus-lg", label: "Ajouter un prospect" };
 }
 
 export function showCommercialModule(role?: Role) {

@@ -11,15 +11,31 @@ import RelanceKpiTable from "./RelanceKpiTable";
 
 const noopSubscribe = () => () => {};
 
-const TONE_ICON: Record<DashboardKpi["tone"], string> = {
-  orange: "bi-lightning-charge",
-  navy: "bi-moon-stars",
-  blue: "bi-funnel",
-  green: "bi-check2-circle",
-  red: "bi-exclamation-triangle",
+const SUMMARY_ICON: Record<DashboardKpi["tone"], string> = {
+  orange: "bi-clock",
+  navy: "bi-send",
+  blue: "bi-view-stacked",
+  green: "bi-check-lg",
+  red: "bi-slash-circle",
   urgent: "bi-bell",
   brand: "bi-people",
 };
+
+const TASK_ICON: Record<DashboardKpi["tone"], string> = {
+  orange: "bi-list-ul",
+  navy: "bi-moon-fill",
+  blue: "bi-clock",
+  green: "bi-check-lg",
+  red: "bi-exclamation-circle-fill",
+  urgent: "bi-fire",
+  brand: "bi-people",
+};
+
+function trendView(trend = 0) {
+  if (trend > 0) return { tone: "is-up", icon: "bi-graph-up-arrow", label: `+${trend}%` };
+  if (trend < 0) return { tone: "is-down", icon: "bi-graph-down-arrow", label: `${trend}%` };
+  return { tone: "is-flat", icon: "bi-dash-lg", label: "0%" };
+}
 
 type MetricGridProps = {
   metrics: DashboardKpi[];
@@ -33,6 +49,7 @@ export default function MetricGrid({ metrics, variant = "filled" }: MetricGridPr
   // true on the client only, so the portal never renders during SSR.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [open, setOpen] = useState<DashboardKpi | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [items, setItems] = useState<DashboardKpiDetailRow[]>([]);
   const [truncated, setTruncated] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -98,26 +115,49 @@ export default function MetricGrid({ metrics, variant = "filled" }: MetricGridPr
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!menuFor) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target as Element).closest(".metric-menu")) setMenuFor(null);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuFor(null);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuFor]);
+
   const gridClass =
     variant === "summary" ? "metric-grid metric-grid-summary" : variant === "tasks" ? "metric-grid metric-grid-tasks" : "metric-grid";
 
   function renderMetricInner(metric: DashboardKpi) {
-    const icon = metric.icon ?? TONE_ICON[metric.tone] ?? "bi-circle";
     if (variant === "summary") {
+      const trend = trendView(metric.trend);
       return (
         <>
           <span className={`metric-summary-icon ${metric.tone}`} aria-hidden>
-            <i className={`bi ${icon}`} />
+            <i className={`bi ${SUMMARY_ICON[metric.tone]}`} />
           </span>
-          <span className="metric-label">{metric.label}</span>
-          {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
-          <span className="metric-summary-foot">
-            <span className="metric-value">
-              <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
-            </span>
-            <span className="metric-trend">
-              <i className="bi bi-dash-lg" aria-hidden />
-              ce mois
+          <span className="metric-summary-body">
+            <span className="metric-label">{metric.label}</span>
+            {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
+            <span className="metric-summary-foot">
+              <span className="metric-value">
+                <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
+              </span>
+              <span className={`metric-trend ${trend.tone}`}>
+                <span className="metric-trend-icon" aria-hidden>
+                  <i className={`bi ${trend.icon}`} />
+                </span>
+                <span className="metric-trend-copy">
+                  <strong>{trend.label}</strong>
+                  <small>ce mois</small>
+                </span>
+              </span>
             </span>
           </span>
         </>
@@ -127,16 +167,22 @@ export default function MetricGrid({ metrics, variant = "filled" }: MetricGridPr
     if (variant === "tasks") {
       return (
         <>
-          <span className="metric-task-icon" aria-hidden>
-            <i className={`bi ${icon}`} />
+          <span className="metric-task-head">
+            <span className="metric-task-icon" aria-hidden>
+              <i className={`bi ${TASK_ICON[metric.tone]}`} />
+            </span>
+            <span className="metric-task-copy">
+              <span className="metric-label">{metric.label}</span>
+              {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
+            </span>
           </span>
-          <span className="metric-label">{metric.label}</span>
-          {metric.hint ? <span className="metric-hint">{metric.hint}</span> : null}
-          <span className="metric-value">
-            <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
-          </span>
-          <span className="metric-task-go" aria-hidden>
-            <i className="bi bi-arrow-right" />
+          <span className="metric-task-foot">
+            <span className="metric-value">
+              <CountUp end={metric.value} duration={1400} suffix={metric.suffix ?? ""} />
+            </span>
+            <span className="metric-task-go" aria-hidden>
+              <i className="bi bi-chevron-right" />
+            </span>
           </span>
         </>
       );
@@ -164,7 +210,7 @@ export default function MetricGrid({ metrics, variant = "filled" }: MetricGridPr
                 ? `metric-box metric-task ${metric.tone}`
                 : `metric-box ${metric.tone}`;
 
-          return metric.id ? (
+          const box = metric.id ? (
             <button
               key={metric.id}
               type="button"
@@ -185,6 +231,47 @@ export default function MetricGrid({ metrics, variant = "filled" }: MetricGridPr
             >
               {renderMetricInner(metric)}
             </Link>
+          );
+          if (variant !== "summary") return box;
+
+          const menuKey = metric.id ?? metric.label;
+          return (
+            <div key={menuKey} className="metric-cell">
+              {box}
+              <div className="metric-menu">
+                <button
+                  type="button"
+                  className="metric-menu-toggle"
+                  aria-haspopup="menu"
+                  aria-expanded={menuFor === menuKey}
+                  aria-label={`Actions — ${metric.label}`}
+                  onClick={() => setMenuFor((current) => (current === menuKey ? null : menuKey))}
+                >
+                  <i className="bi bi-three-dots-vertical" aria-hidden />
+                </button>
+                {menuFor === menuKey ? (
+                  <div className="metric-menu-list" role="menu">
+                    {metric.id ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuFor(null);
+                          openMetric(metric);
+                        }}
+                      >
+                        <i className="bi bi-layout-sidebar-inset-reverse" aria-hidden />
+                        Voir le détail
+                      </button>
+                    ) : null}
+                    <Link href={metric.href} role="menuitem" onClick={() => setMenuFor(null)}>
+                      <i className="bi bi-box-arrow-up-right" aria-hidden />
+                      Ouvrir la liste
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           );
         })}
       </div>

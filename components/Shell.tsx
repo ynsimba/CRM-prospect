@@ -24,6 +24,7 @@ export default async function Shell({
       role={session.role}
       userName={session.name}
       photoUrl={session.photoUrl ?? null}
+      civility={session.civility ?? null}
       unreadCount={unreadCount}
     >
       {children}
