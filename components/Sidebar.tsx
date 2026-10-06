@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
 import { initialsFromName } from "@/lib/crm";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, homePathForRole } from "@/lib/roles";
 import {
   COMMERCIAL_NAV,
   DIRECTION_NAV,
@@ -55,15 +55,22 @@ export default function Sidebar({
   return (
     <aside id="app-sidebar" className={`sidebar ${open ? "open" : ""}`}>
       <div className="sidebar-logo">
-        <Image
-          src="/logo.png"
-          alt="Safecheck RDC"
-          className="sidebar-brand"
-          width={1495}
-          height={494}
-          sizes="200px"
-          loading="eager"
-        />
+        <Link
+          href={role ? homePathForRole(role) : "/"}
+          className="sidebar-brand-link"
+          aria-label="Retour au tableau de bord"
+          onClick={onNavigate}
+        >
+          <Image
+            src="/logo.png"
+            alt="Safecheck RDC"
+            className="sidebar-brand"
+            width={1495}
+            height={494}
+            sizes="200px"
+            loading="eager"
+          />
+        </Link>
         <button
           type="button"
           className="sidebar-hide"
