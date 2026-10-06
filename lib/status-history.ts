@@ -106,14 +106,16 @@ export async function notifyDirectorsOfFinalStatus(input: {
   }
 }
 
-export async function nextDisplayCode(organizationId: string, prefix: "ENT" | "CTC" | "ACT" | "HIST") {
+export async function nextDisplayCode(organizationId: string, prefix: "ENT" | "CTC" | "ACT" | "HIST" | "POR") {
   const count =
     prefix === "ENT"
       ? await prisma.company.count({ where: { organizationId } })
-      : prefix === "CTC"
-        ? await prisma.contact.count({ where: { organizationId } })
-        : prefix === "HIST"
-          ? await prisma.prospectStatusHistory.count({ where: { organizationId } })
-          : await prisma.task.count({ where: { organizationId } });
+      : prefix === "POR"
+        ? await prisma.contact.count({ where: { organizationId, category: "porteur" } })
+        : prefix === "CTC"
+          ? await prisma.contact.count({ where: { organizationId } })
+          : prefix === "HIST"
+            ? await prisma.prospectStatusHistory.count({ where: { organizationId } })
+            : await prisma.task.count({ where: { organizationId } });
   return `${prefix}-${String(count + 1).padStart(3, "0")}`;
 }
