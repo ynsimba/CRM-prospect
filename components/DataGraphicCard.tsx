@@ -85,7 +85,7 @@ export default function DataGraphicCard({ pipelinePercent, winPercent, goal }: D
         <div className="progress-block">
           <CircularProgress percent={pipelinePercent} color={onTrack ? "#8dc438" : "#fcb040"} />
           <div className="progress-copy">
-            <p>% Pipeline ce mois</p>
+            <p>% Décideurs ce mois</p>
             <span className="amount">
               <CountUp end={pipelinePercent} duration={1500} suffix="%" />
             </span>

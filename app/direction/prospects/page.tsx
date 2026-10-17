@@ -23,8 +23,8 @@ export default async function DirectorProspectsPage({
     <Shell activeHref="/direction/prospects">
       <div className="page-head">
         <div>
-          <h1 className="page-title">Tous les Prospect</h1>
-          <p className="card-sub">
+          <h1 className="page-title">Tous les Prospects</h1>
+          <p className="card-sub is-ink">
             Tous les prospects saisis par les agents — commente, réassigne et suis l’avancement.
           </p>
         </div>

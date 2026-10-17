@@ -58,7 +58,7 @@ class CommercialPerformanceController extends Controller
         return response()->json([
             'data' => $commerciaux->map(function (User $commercial) use ($scores) {
                 $score = $scores[$commercial->id];
-                // Clé 0 : prospects sans phase (rejetés), exclus du score.
+                // Clé 0 : prospects sans phase (clôturés), exclus du score.
                 $phases = $commercial->prospects->countBy(fn (Prospect $prospect) => (int) $prospect->phase);
 
                 return [
@@ -85,7 +85,7 @@ class CommercialPerformanceController extends Controller
         ]);
     }
 
-    /** Opportunité = 1, Lead = 2, Pipeline = 3, Finalisé = 4 ; un prospect rejeté n'a pas de phase. */
+    /** Premier contact = 1, Échanges = 2, Décideurs = 3, Contrat = 4 ; un prospect clôturé n'a pas de phase. */
     private function phase(?ProspectStatus $status): ?int
     {
         if (! $status || $status->isLost) {

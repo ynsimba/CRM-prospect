@@ -2,11 +2,11 @@ import { PROSPECT_SORTS } from "./prospect-list-logic";
 
 export const SUIVI_BOARD_COLUMNS = [
   { key: "uncategorized", name: "Non catégorisée", slug: "", tone: "uncategorized" },
-  { key: "opportunite", name: "Opportunité", slug: "opportunite", tone: "opportunite" },
-  { key: "lead", name: "Lead", slug: "lead", tone: "lead" },
-  { key: "pipeline", name: "Pipeline", slug: "pipeline", tone: "pipeline" },
-  { key: "finalise", name: "Finalisé", slug: "finalise", tone: "finalise" },
-  { key: "rejete", name: "Rejeté", slug: "rejete", tone: "rejete" },
+  { key: "opportunite", name: "Premier contact", slug: "opportunite", tone: "opportunite" },
+  { key: "lead", name: "Échanges", slug: "lead", tone: "lead" },
+  { key: "pipeline", name: "Décideurs", slug: "pipeline", tone: "pipeline" },
+  { key: "finalise", name: "Contrat", slug: "finalise", tone: "finalise" },
+  { key: "rejete", name: "Clôturé", slug: "rejete", tone: "rejete" },
 ] as const;
 
 export type SuiviBoardKey = (typeof SUIVI_BOARD_COLUMNS)[number]["key"];

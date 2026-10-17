@@ -5,7 +5,7 @@ import { buildSuiviColumns, suiviCardTitle, suiviHref, SUIVI_BOARD_COLUMNS } fro
 test("le board Suivi Prospect a Non catégorisée puis les 5 statuts Safecheck", () => {
   assert.deepEqual(
     SUIVI_BOARD_COLUMNS.map((column) => column.name),
-    ["Non catégorisée", "Opportunité", "Lead", "Pipeline", "Finalisé", "Rejeté"],
+    ["Non catégorisée", "Premier contact", "Échanges", "Décideurs", "Contrat", "Clôturé"],
   );
 });
 
@@ -49,7 +49,7 @@ test("les prospects hors étapes Safecheck vont dans Non catégorisée", () => {
   assert.equal(columns[0].items.length, 1);
   assert.equal(columns[0].items[0].title, "Safecheck");
   assert.equal(columns[0].droppable, false);
-  assert.equal(columns[2].name, "Lead");
+  assert.equal(columns[2].name, "Échanges");
   assert.equal(columns[2].items[0].title, "Rawbank");
   assert.equal(columns[2].droppable, true);
   assert.equal(columns[2].statusId, "s-lead");

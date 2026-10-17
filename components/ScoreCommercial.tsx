@@ -1,3 +1,4 @@
+import { useId, type CSSProperties } from "react";
 import { initialsFromName } from "@/lib/crm";
 import type { ScoreDetails } from "@/lib/performance";
 import styles from "./ScoreCommercial.module.css";
@@ -7,6 +8,13 @@ const COULEURS = {
   orange: "#fb8c00",
   vert: "#43a047",
 } as const;
+
+/** Teinte claire de départ du dégradé de l’anneau. */
+const CLAIRS: Record<keyof typeof COULEURS, string> = {
+  rouge: "#ff8a7a",
+  orange: "#ffc861",
+  vert: "#9be08f",
+};
 
 const SIZE = 120;
 const STROKE = 10;
@@ -21,10 +29,10 @@ const PARTS = [
 ] as const;
 
 const PHASES = [
-  { key: "opportunite", label: "Opportunité" },
-  { key: "lead", label: "Lead" },
-  { key: "pipeline", label: "Pipeline" },
-  { key: "finalise", label: "Finalisé" },
+  { key: "opportunite", label: "Premier contact" },
+  { key: "lead", label: "Échanges" },
+  { key: "pipeline", label: "Décideurs" },
+  { key: "finalise", label: "Contrat" },
 ] as const;
 
 export type ScoreCommercialProps = {
@@ -48,26 +56,41 @@ function plural(count: number, word: string) {
 export default function ScoreCommercial({ nom, photoUrl, score, couleur, details }: ScoreCommercialProps) {
   const part = Math.min(100, Math.max(0, Number.isFinite(score) ? score : 0));
   const label = `${decimal(part)} %`;
+  const gradientId = `score-${useId().replace(/[^\w-]/g, "")}`;
+  const color = COULEURS[couleur];
+  // Point lumineux au bout de l’arc (l’anneau démarre en haut, sens horaire).
+  const angle = (part / 100) * 2 * Math.PI - Math.PI / 2;
+  const knob = { x: CENTER + RADIUS * Math.cos(angle), y: CENTER + RADIUS * Math.sin(angle) };
 
   return (
-    <figure className={styles.card}>
+    <figure className={styles.card} style={{ "--score-color": color } as CSSProperties}>
       <div className={styles.donut}>
         <svg className={styles.ring} viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={`Score de ${nom} : ${label}`}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2={SIZE} y2={SIZE} gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor={CLAIRS[couleur]} />
+              <stop offset="100%" stopColor={color} />
+            </linearGradient>
+          </defs>
           <circle className={styles.track} cx={CENTER} cy={CENTER} r={RADIUS} fill="none" strokeWidth={STROKE} />
           {part > 0 ? (
-            <circle
-              className={styles.part}
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS}
-              fill="none"
-              stroke={COULEURS[couleur]}
-              strokeWidth={STROKE}
-              // pathLength ramène le tour complet à 100 : le tiret vaut directement le score.
-              pathLength={100}
-              strokeDasharray={`${part} 100`}
-              transform={`rotate(-90 ${CENTER} ${CENTER})`}
-            />
+            <>
+              <circle
+                className={styles.part}
+                cx={CENTER}
+                cy={CENTER}
+                r={RADIUS}
+                fill="none"
+                stroke={`url(#${gradientId})`}
+                strokeWidth={STROKE}
+                strokeLinecap="round"
+                // pathLength ramène le tour complet à 100 : le tiret vaut directement le score.
+                pathLength={100}
+                strokeDasharray={`${part} 100`}
+                transform={`rotate(-90 ${CENTER} ${CENTER})`}
+              />
+              <circle className={styles.knob} cx={knob.x} cy={knob.y} r={STROKE / 2 - 1.5} />
+            </>
           ) : null}
         </svg>
         {photoUrl ? (
@@ -110,15 +133,15 @@ export default function ScoreCommercial({ nom, photoUrl, score, couleur, details
             </ul>
             {details.rejetes > 0 ? (
               <p className={styles.note}>
-                {plural(details.rejetes, "rejeté")} non compté{details.rejetes > 1 ? "s" : ""}
+                {plural(details.rejetes, "clôturé")} non compté{details.rejetes > 1 ? "s" : ""}
               </p>
             ) : null}
           </div>
         ) : null}
       </div>
       <figcaption className={styles.caption}>
-        <span className={styles.nom}>{nom}</span>
         <span className={styles.score}>{label}</span>
+        <span className={styles.nom}>{nom}</span>
       </figcaption>
     </figure>
   );

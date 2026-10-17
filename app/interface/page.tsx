@@ -66,7 +66,7 @@ export default async function CommercialInterfacePage() {
         <div className="col-12 col-xl-4">
           <article className="dash-card">
             <h3>Ajouter un prospect</h3>
-            <p className="card-sub">Statut initial Opportunité · commercial = vous.</p>
+            <p className="card-sub">Statut initial Premier contact · commercial = vous.</p>
             <ProspectForm
               statuses={options.statuses}
               sources={options.sources}

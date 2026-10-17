@@ -45,7 +45,7 @@ export const COMMERCIAL_NAV = SALES_NAV;
 
 export const DIRECTION_NAV: NavItem[] = [
   { href: "/direction", icon: "bi-speedometer2", label: "Tableau de bord" },
-  { href: "/direction/prospects", icon: "bi-people", label: "Tous les Prospect" },
+  { href: "/direction/prospects", icon: "bi-people", label: "Tous les Prospects" },
   { href: "/direction/agents/liste", icon: "bi-person-vcard", label: "Agents commerciaux" },
   { href: "/direction/assignation", icon: "bi-person-check", label: "Assignation Tâches" },
   { href: "/direction/taches", icon: "bi-list-check", label: "Suivie des tâches" },

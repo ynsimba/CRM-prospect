@@ -61,7 +61,6 @@ export type DashboardStats = {
   overdueTaskBars: { label: string; value: number }[];
   analytics: Record<AnalyticsRange, { total: number; spark: number[]; caption: string }>;
   prospectsHref: string;
-  teamProspects?: DashboardKpiDetailRow[];
 };
 
 function ownedBy(session: SessionPayload) {
@@ -320,24 +319,36 @@ export async function getDashboardStats(
         trend: monthTrendPercent(value, value - entered),
       };
     });
+  const STATUS_TONES: Record<string, DashboardKpi["tone"]> = {
+    opportunite: "orange",
+    lead: "navy",
+    pipeline: "blue",
+    finalise: "green",
+    rejete: "red",
+  };
+  const statusOverview: DashboardKpi[] = ordered.map((status) => {
+    const value = counts.get(status.id) ?? 0;
+    const entered = Math.min(value, enteredThisMonth.get(status.id) ?? 0);
+    return {
+      id: `status:${status.id}`,
+      label: status.name,
+      hint: "Prospects des commerciaux",
+      value,
+      tone: STATUS_TONES[status.slug] ?? "navy",
+      href: `${prospectsHref}?status=${status.id}`,
+      trend: monthTrendPercent(value, value - entered),
+    };
+  });
   const allTrend = monthTrendPercent(myActiveProspects, myActiveProspects - createdThisMonth);
-  const prospectKpis: DashboardKpi[] = [
-    allProspectsKpi(
-      myActiveProspects,
-      isSales ? { scope: "mine", trend: allTrend } : { scope: "all", href: prospectsHref, trend: allTrend },
-    ),
-    dormantProspectsKpi(
-      inactiveTwoMonths,
-      isSales ? "/prospects?mine=1" : prospectsHref,
-      monthTrendPercent(inactiveTwoMonths, dormantAtMonthStart),
-    ),
-    followUpProspectsKpi(
-      toFollowUp,
-      isSales ? "/prospects?mine=1" : prospectsHref,
-      monthTrendPercent(toFollowUp, followUpAtMonthStart),
-    ),
-    ...statusKpis,
-  ];
+  // Direction : le total puis un indicateur par statut ; commercial : ses indicateurs de suivi.
+  const prospectKpis: DashboardKpi[] = isSales
+    ? [
+        allProspectsKpi(myActiveProspects, { scope: "mine", trend: allTrend }),
+        dormantProspectsKpi(inactiveTwoMonths, "/prospects?mine=1", monthTrendPercent(inactiveTwoMonths, dormantAtMonthStart)),
+        followUpProspectsKpi(toFollowUp, "/prospects?mine=1", monthTrendPercent(toFollowUp, followUpAtMonthStart)),
+        ...statusKpis,
+      ]
+    : [allProspectsKpi(myActiveProspects, { scope: "all", href: prospectsHref, trend: allTrend }), ...statusOverview];
 
   const agentPerformance = agentPerformanceFromStatusCounts(
     ordered.map((status) => ({ slug: status.slug, count: counts.get(status.id) ?? 0 })),
@@ -356,6 +367,20 @@ export async function getDashboardStats(
     },
     prospectKpis,
     taskKpis: [
+      {
+        label: "Urgent",
+        hint: "Haute priorité",
+        value: urgentTasks,
+        tone: "urgent",
+        href: "/taches",
+      },
+      {
+        label: "Tâches en retard",
+        hint: isSales ? "Mes échéances dépassées" : "Tous commerciaux",
+        value: overdueTasks,
+        tone: "red",
+        href: "/taches",
+      },
       {
         label: "Tâches ouvertes",
         hint: "À faire et en cours",
@@ -376,20 +401,6 @@ export async function getDashboardStats(
         value: cancelledTasks,
         tone: "blue",
         href: "/taches?status=CANCELLED",
-      },
-      {
-        label: "Urgent",
-        hint: "Haute priorité",
-        value: urgentTasks,
-        tone: "urgent",
-        href: "/taches",
-      },
-      {
-        label: "Tâches en retard",
-        hint: isSales ? "Mes échéances dépassées" : "Tous commerciaux",
-        value: overdueTasks,
-        tone: "red",
-        href: "/taches",
       },
       {
         label: "Prospects dormants",
@@ -413,6 +424,5 @@ export async function getDashboardStats(
       now,
     ),
     prospectsHref,
-    teamProspects: isSales ? undefined : (await listDashboardKpiDetails(session, "all")).items,
   };
 }

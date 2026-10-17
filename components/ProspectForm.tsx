@@ -49,7 +49,7 @@ export default function ProspectForm({
   const [ownerId, setOwnerId] = useState(defaultOwnerId ?? "");
   const statusRef = useRef<HTMLDivElement>(null);
   const owner = owners.find((item) => item.id === ownerId);
-  const statusName = statuses.find((item) => item.id === statusId)?.name ?? "Opportunité";
+  const statusName = statuses.find((item) => item.id === statusId)?.name ?? "Premier contact";
   const [toast, setToast] = useState<{ id: number; message: string; tone: "success" | "error" } | null>(null);
   const wasPending = useRef(false);
 

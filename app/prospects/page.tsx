@@ -131,14 +131,14 @@ export default async function ProspectsPage({
       tone: "pink",
       icon: "bi-person",
       value: countBySlug("lead"),
-      label: "Leads",
+      label: "Échanges",
       href: prospectListHref(query, { status: statusId("lead") }),
     },
     {
       tone: "violet",
       icon: "bi-bullseye",
       value: countBySlug("opportunite"),
-      label: "Opportunités",
+      label: "Premiers contacts",
       href: prospectListHref(query, { status: statusId("opportunite") }),
     },
     {

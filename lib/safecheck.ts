@@ -5,11 +5,11 @@ export const REJECTED_ARCHIVE_DAYS = 15;
 export const FINALIZED_ARCHIVE_DAYS = 30;
 
 export const SAFECHECK_STATUSES = [
-  { name: "Opportunité", slug: "opportunite", sortOrder: 0, isConverted: false, isLost: false },
-  { name: "Lead", slug: "lead", sortOrder: 1, isConverted: false, isLost: false },
-  { name: "Pipeline", slug: "pipeline", sortOrder: 2, isConverted: false, isLost: false },
-  { name: "Rejeté", slug: "rejete", sortOrder: 3, isConverted: false, isLost: true },
-  { name: "Finalisé", slug: "finalise", sortOrder: 4, isConverted: true, isLost: false },
+  { name: "Premier contact", slug: "opportunite", sortOrder: 0, isConverted: false, isLost: false },
+  { name: "Échanges", slug: "lead", sortOrder: 1, isConverted: false, isLost: false },
+  { name: "Décideurs", slug: "pipeline", sortOrder: 2, isConverted: false, isLost: false },
+  { name: "Clôturé", slug: "rejete", sortOrder: 3, isConverted: false, isLost: true },
+  { name: "Contrat", slug: "finalise", sortOrder: 4, isConverted: true, isLost: false },
 ] as const;
 
 export type SafecheckStatusSlug = (typeof SAFECHECK_STATUSES)[number]["slug"];

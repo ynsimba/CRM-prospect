@@ -74,6 +74,6 @@ test("score avancé : WhatsApp, VIP, statut, relance en retard", () => {
     now,
   });
   assert.equal(lost.score, 0);
-  assert.ok(lost.parts.some((part) => part.label === "Rejeté" && part.points === -20));
+  assert.ok(lost.parts.some((part) => part.label === "Clôturé" && part.points === -20));
   assert.ok(lost.parts.some((part) => part.label === "Relance en retard" && part.points === -10));
 });

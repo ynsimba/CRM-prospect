@@ -133,11 +133,15 @@ export default function ProfileCard({ name, civility, overdue }: ProfileCardProp
     <article className="welcome-banner">
       <BannerLeaves />
       <div className="welcome-banner-copy">
+        <p className="welcome-banner-eyebrow">
+          <span className="welcome-banner-pulse" aria-hidden />
+          {moment}
+        </p>
         <h1 className="welcome-banner-title">
-          <span className="welcome-banner-hello">Bonjour</span>
+          <span className="welcome-banner-hello">Bonjour{shortLabel ? "," : ""}</span>
           {shortLabel ? <span className="welcome-banner-name">{shortLabel}</span> : null}
         </h1>
-        <p className="welcome-banner-text">{moment} ! Voici un aperçu de vos activités commerciales.</p>
+        <p className="welcome-banner-text">Voici un aperçu de vos activités commerciales.</p>
         <div className="welcome-banner-meta">
           <p className="welcome-banner-date">
             <i className="bi bi-calendar-event" aria-hidden />

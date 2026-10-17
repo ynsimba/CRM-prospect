@@ -110,7 +110,7 @@ export default async function SettingsPage() {
           <div className="col-12 col-xl-4">
             <article className="dash-card">
               <h3>Statuts</h3>
-              <p className="muted-line">Opportunité, Lead, Pipeline, Rejeté, Finalisé</p>
+              <p className="muted-line">Premier contact, Échanges, Décideurs, Clôturé, Contrat</p>
               <ul className="catalog-list">
                 {options.statuses.map((status) => (
                   <li key={status.id}>{status.name}</li>

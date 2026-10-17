@@ -1,3 +1,4 @@
+import TableSort from "@/components/TableSort";
 import UnregisterStaleWorkers from "@/components/UnregisterStaleWorkers";
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
         <UnregisterStaleWorkers />
+        <TableSort />
         {children}
       </body>
     </html>

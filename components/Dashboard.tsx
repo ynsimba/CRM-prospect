@@ -10,7 +10,6 @@ import AreaChartCard from "./AreaChartCard";
 import DonutChartCard from "./DonutChartCard";
 import DataGraphicCard from "./DataGraphicCard";
 import AnalyticsCard from "./AnalyticsCard";
-import RelanceKpiTable from "./RelanceKpiTable";
 import ScoresCommerciaux from "./ScoresCommerciaux";
 import type { DashboardStats } from "@/lib/dashboard";
 import type { ScoreCommercialRow } from "@/lib/performance";
@@ -64,31 +63,6 @@ export default function Dashboard({
           <div className="col-12" style={{ "--i": 2 } as CSSProperties}>
             <ScoresCommerciaux />
           </div>
-
-          {stats.teamProspects ? (
-            <div className="col-12" style={{ "--i": 2 } as CSSProperties}>
-              <article className="dash-card">
-                <div className="company-head">
-                  <div>
-                    <h3>Prospects des commerciaux</h3>
-                    <p className="card-sub">
-                      Toutes les entreprises ajoutées par les agents — ajoute un commentaire pour le suivi.
-                    </p>
-                  </div>
-                </div>
-                {stats.teamProspects.length === 0 ? (
-                  <p className="empty-copy">Aucun prospect saisi par les agents pour le moment.</p>
-                ) : (
-                  <RelanceKpiTable
-                    items={stats.teamProspects}
-                    showOwner
-                    commentPlaceholder="Commentaire direction…"
-                    refreshOnSave
-                  />
-                )}
-              </article>
-            </div>
-          ) : null}
 
           <div className="col-12 col-lg-7" style={{ "--i": 3 } as CSSProperties}>
             <BarChartCard

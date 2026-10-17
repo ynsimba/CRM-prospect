@@ -19,13 +19,68 @@
   height: 100%;
 }
 
+/* Halo doux autour de l’anneau, dans la couleur du score. */
+.donut::before {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--score-color) 22%, transparent) 0%, transparent 70%);
+  filter: blur(10px);
+  z-index: -1;
+}
+
 .track {
-  stroke: var(--line-strong);
+  stroke: color-mix(in srgb, var(--score-color) 14%, var(--line-strong));
 }
 
 .part {
   shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--score-color) 45%, transparent));
+  /* Au chargement, l’anneau se trace de 0 jusqu’au score (valeur finale = attribut stroke-dasharray). */
+  animation: drawRing 1.2s cubic-bezier(0.22, 1, 0.36, 1) var(--score-delay, 0s) both;
 }
+
+/* Point blanc au bout de l’arc, révélé une fois l’anneau tracé. */
+.knob {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.25));
+  animation: fadeKnob 0.35s ease calc(var(--score-delay, 0s) + 1s) both;
+}
+
+@keyframes fadeKnob {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawRing {
+  from {
+    stroke-dasharray: 0 100;
+  }
+}
+
+@keyframes popPhoto {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Léger décalage d’une carte à l’autre. */
+li:nth-child(2) .card { --score-delay: 0.08s; }
+li:nth-child(3) .card { --score-delay: 0.16s; }
+li:nth-child(4) .card { --score-delay: 0.24s; }
+li:nth-child(5) .card { --score-delay: 0.32s; }
+li:nth-child(n + 6) .card { --score-delay: 0.4s; }
 
 /* La photo remplit l’intérieur de l’anneau en laissant un filet de respiration. */
 .photo {
@@ -35,6 +90,10 @@
   height: 76%;
   border-radius: 50%;
   object-fit: cover;
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 6px 16px rgba(15, 40, 20, 0.18);
+  animation: popPhoto 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--score-delay, 0s) + 0.15s) both;
 }
 
 .initials {
@@ -66,10 +125,22 @@
   color: var(--text-strong);
 }
 
+/* Pastille du score, qui chevauche le bas de l’anneau. */
 .score {
-  font-size: 0.85rem;
+  order: -1;
+  margin-top: -22px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--score-color) 70%, #ffffff), var(--score-color));
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 4px 10px color-mix(in srgb, var(--score-color) 35%, transparent);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text);
+  position: relative;
+  z-index: 1;
 }
 
 /* Détail du score : sous l’anneau, révélé au survol de la carte ou au focus clavier du parent. */
@@ -78,10 +149,10 @@
   top: calc(100% + 10px);
   left: 50%;
   z-index: 5;
-  width: 216px;
+  width: 200px;
   padding: 12px 14px;
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: 6px;
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   color: var(--text);
@@ -191,6 +262,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .part,
+  .knob,
+  .photo {
+    animation: none;
+  }
+
   .details {
     transition: none;
     transform: translate(-50%, 0);

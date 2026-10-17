@@ -146,11 +146,11 @@ export function computeProspectScore(input: {
   if (tags.includes("Urgent")) add("Tag urgent", 5);
 
   const slug = input.statusSlug ?? "";
-  if (slug === "pipeline") add("Pipeline", 15);
-  else if (slug === "lead") add("Lead", 10);
-  else if (slug === "opportunite") add("Opportunité", 5);
-  else if (slug === "finalise") add("Finalisé", 20);
-  else if (slug === "rejete") add("Rejeté", -20);
+  if (slug === "pipeline") add("Décideurs", 15);
+  else if (slug === "lead") add("Échanges", 10);
+  else if (slug === "opportunite") add("Premier contact", 5);
+  else if (slug === "finalise") add("Contrat", 20);
+  else if (slug === "rejete") add("Clôturé", -20);
 
   const types = input.activityTypes ?? [];
   const exchanges = types.filter((type) => ["CALL", "EMAIL", "WHATSAPP", "SMS"].includes(type)).length;

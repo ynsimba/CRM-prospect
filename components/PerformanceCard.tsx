@@ -40,7 +40,7 @@ export default function PerformanceCard({
           <p className="card-sub">
             {score
               ? "Avancement 70 % · Signatures 20 % · Volume 10 %"
-              : "Création 5% · Lead 15% · Pipeline 30% · Finalisé 50%"}
+              : "Création 5% · Échanges 15% · Décideurs 30% · Contrat 50%"}
           </p>
         </div>
         <p className="welcome-perf-score" aria-label={`Score ${label} pour cent`}>
@@ -61,16 +61,16 @@ export default function PerformanceCard({
 
       <div className="welcome-perf-meta">
         <span>
-          Opp. <strong>{byStage.opportunite}</strong>
+          Premier contact <strong>{byStage.opportunite}</strong>
         </span>
         <span>
-          Lead <strong>{byStage.lead}</strong>
+          Échanges <strong>{byStage.lead}</strong>
         </span>
         <span>
-          Pipeline <strong>{byStage.pipeline}</strong>
+          Décideurs <strong>{byStage.pipeline}</strong>
         </span>
         <span>
-          Finalisé <strong>{byStage.finalise}</strong>
+          Contrat <strong>{byStage.finalise}</strong>
         </span>
       </div>
     </article>

@@ -59,7 +59,7 @@ test("la direction n’a que son interface", () => {
     main.map((item) => item.label),
     [
       "Tableau de bord",
-      "Tous les Prospect",
+      "Tous les Prospects",
       "Agents commerciaux",
       "Assignation Tâches",
       "Suivie des tâches",
